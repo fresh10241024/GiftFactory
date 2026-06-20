@@ -1,9 +1,8 @@
-node_modules
-vendor
-
 .env
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+dist/
 .DS_Store
-.idea
-.vscode
-.history
-.cache
