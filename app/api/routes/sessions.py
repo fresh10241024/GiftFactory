@@ -146,7 +146,7 @@ async def generate_gift(session_id: str):
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4096,
+        max_tokens=6000,
         messages=[{"role": "user", "content": prompt}]
     )
 
