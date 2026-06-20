@@ -41,6 +41,12 @@ export class ChatInteraction {
                 try {
                     const data = await getMySessions();
                     this.allSessions = data.sessions || [];
+                    // If this session is already done, go to gift page
+                    const thisSession = this.allSessions.find(s => s.id === existing);
+                    if (thisSession && thisSession.status === 'done') {
+                        window.location.href = './gift.html';
+                        return;
+                    }
                     this.renderPanel();
                 } catch (_) {}
             }
