@@ -208,8 +208,8 @@ def _call_claude(prompt: str) -> str:
 
 def _run_generation(session_id: str, state: dict, plan: dict):
     keywords = plan.get("unsplash_keywords") or ",".join(filter(None, [
-        state.get("shared_elements", {}).get("place", ""),
-        state.get("atmosphere", "")
+        state.get("scene_detail", {}).get("place", ""),
+        state.get("core_emotion", "")
     ])) or "nature,beautiful"
     prompt = GENERATE_WEBSITE_PROMPT.format(
         state=json.dumps(state, ensure_ascii=False),
