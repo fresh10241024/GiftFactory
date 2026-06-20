@@ -413,9 +413,6 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
         if existing.data:
             return {"status": "done", "slug": existing.data[0]["slug"]}
 
-    if session.get("status") == "generating":
-        return {"status": "generating"}
-
     if not session.get("style_summary"):
         raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
 
