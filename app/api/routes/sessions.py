@@ -9,7 +9,7 @@ from anthropic import Anthropic
 from openai import OpenAI
 from app.db import supabase
 from app.config import settings
-from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT
+from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT, DESIGN_SKILLS
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=300.0)
@@ -108,10 +108,12 @@ async def chat(session_id: str, body: ChatRequest):
         "content": raw_reply
     }).execute()
 
+    mood = (state or {}).get("mood", {"bg": "#0a0a0f", "accent": "#a0a0c0", "particle": "float"})
     return {
         "reply": reply,
         "ready": ready,
-        "state": state
+        "state": state,
+        "mood": mood
     }
 
 
@@ -190,9 +192,15 @@ def _call_claude(prompt: str) -> str:
 
 
 def _run_generation(session_id: str, state: dict, plan: dict):
+    keywords = ",".join(filter(None, [
+        plan.get("visual", ""), state.get("shared_elements", {}).get("place", ""),
+        state.get("atmosphere", "")
+    ]))[:60] or "nature,beautiful"
     prompt = GENERATE_WEBSITE_PROMPT.format(
         state=json.dumps(state, ensure_ascii=False),
-        plan=json.dumps(plan, ensure_ascii=False)
+        plan=json.dumps(plan, ensure_ascii=False),
+        skills=DESIGN_SKILLS,
+        keywords=keywords
     )
     last_error = None
     for attempt in range(1, 3):
