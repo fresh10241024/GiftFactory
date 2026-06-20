@@ -40,6 +40,7 @@
 
         .session-info { flex: 1; }
         .session-recipient { font-size: 1.05rem; font-weight: 500; margin-bottom: 4px; }
+        .session-analysis { font-size: 0.85rem; opacity: 0.6; margin: 3px 0; font-style: italic; }
         .session-meta { font-size: 0.82rem; opacity: 0.45; }
 
         .session-status {
@@ -161,9 +162,11 @@
                         ? `<a href="./gift.html?session=${s.id}" class="btn-action primary" onclick="localStorage.setItem('chat_session_id','${s.id}')">查看礼物</a>`
                         : `<a href="./chat.html?session=${s.id}" class="btn-action">继续</a>`;
 
+                    const analysisTitle = s.analysis_title ? `<div class="session-analysis">${s.analysis_title}</div>` : '';
                     card.innerHTML = `
                         <div class="session-info">
                             <div class="session-recipient">送给 ${recipient}</div>
+                            ${analysisTitle}
                             <div class="session-meta">${date}${occasion}</div>
                         </div>
                         <span class="${statusClass(s.status)}">${statusLabel(s.status)}</span>
