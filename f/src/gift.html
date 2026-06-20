@@ -3,13 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gift Page</title>
+    <title>Your Gift</title>
     <link rel="stylesheet" href="./styles/base.css">
-    <link rel="stylesheet" href="./styles/index.css">
+    <style>
+        body { margin: 0; background: #0a0a0f; color: #fff; font-family: system-ui, sans-serif; }
+        #loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 24px; }
+        .spinner { width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1); border-top-color: rgba(255,255,255,0.6); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #status-text { font-size: 0.85rem; letter-spacing: 0.15em; opacity: 0.5; }
+        #gift-frame { display: none; width: 100%; height: 100vh; border: none; }
+        #error-view { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 16px; text-align: center; padding: 20px; }
+        #error-view p { opacity: 0.5; font-size: 0.9rem; }
+        #retry-btn { margin-top: 8px; padding: 10px 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 8px; cursor: pointer; font-size: 0.85rem; letter-spacing: 0.1em; }
+        #retry-btn:hover { background: rgba(255,255,255,0.18); }
+    </style>
 </head>
 <body>
-    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 2em;">
-        <h1>最终的礼物页面 (WIP)</h1>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div id="status-text">正在生成你的礼物网站…</div>
     </div>
+    <iframe id="gift-frame"></iframe>
+    <div id="error-view">
+        <h2>生成遇到了问题</h2>
+        <p id="error-msg"></p>
+        <button id="retry-btn" onclick="startFlow()">重试</button>
+    </div>
+    <script type="module">
+        const BASE = '/api';
+        const sessionId = localStorage.getItem('chat_session_id');
+
+        function showError(msg) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-view').style.display = 'flex';
+            document.getElementById('error-msg').textContent = msg || '请返回重新生成';
+        }
+
+        function showGift(slug) {
+            document.getElementById('loading').style.display = 'none';
+            const frame = document.getElementById('gift-frame');
+            frame.src = BASE + '/gifts/' + slug;
+            frame.style.display = 'block';
+        }
+
+        async function poll(sid) {
+            const dots = ['·', '··', '···', '····'];
+            let d = 0;
+            const timer = setInterval(() => {
+                document.getElementById('status-text').textContent = '生成中 ' + dots[d++ % 4];
+            }, 700);
+            for (let i = 0; i < 200; i++) {
+                await new Promise(r => setTimeout(r, 3000));
+                try {
+                    const res = await fetch(BASE + '/sessions/' + sid + '/gift');
+                    const data = await res.json();
+                    if (data.status === 'done') { clearInterval(timer); showGift(data.slug); return; }
+                    if (data.status === 'error') { clearInterval(timer); showError(data.error); return; }
+                } catch (e) {}
+            }
+            clearInterval(timer);
+            showError('生成超时，请重试');
+        }
+
+        async function startFlow() {
+            document.getElementById('error-view').style.display = 'none';
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('status-text').textContent = '正在生成你的礼物网站…';
+            if (!sessionId) { showError('会话已过期，请返回重新开始'); return; }
+            try {
+                const check = await fetch(BASE + '/sessions/' + sessionId + '/gift');
+                const data = await check.json();
+                if (data.status === 'done') { showGift(data.slug); return; }
+                if (data.status === 'generating') { poll(sessionId); return; }
+            } catch (e) {}
+            try {
+                const res = await fetch(BASE + '/sessions/' + sessionId + '/generate', { method: 'POST' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                poll(sessionId);
+            } catch (e) { showError('启动生成失败：' + e.message); }
+        }
+
+        window.startFlow = startFlow;
+        startFlow();
+    </script>
 </body>
 </html>

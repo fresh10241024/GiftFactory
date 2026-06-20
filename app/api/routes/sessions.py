@@ -2,8 +2,9 @@ import re
 import json
 import uuid
 import time
+import base64
 import traceback
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from pydantic import BaseModel
 from anthropic import Anthropic
 from openai import OpenAI
@@ -117,6 +118,38 @@ async def chat(session_id: str, body: ChatRequest):
     }
 
 
+@router.post("/{session_id}/upload")
+async def upload_image(session_id: str, file: UploadFile = File(...)):
+    result = supabase.table("sessions").select("style_summary").eq("id", session_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    state = result.data[0].get("style_summary") or {}
+
+    image_data = await file.read()
+    b64 = base64.standard_b64encode(image_data).decode("utf-8")
+    media_type = file.content_type or "image/jpeg"
+
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=200,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                    {"type": "text", "text": "用一句话描述这张照片的色调、场景和氛围，20字以内，中文。"}
+                ]
+            }]
+        )
+        description = resp.content[0].text.strip()
+    except Exception:
+        description = f"一张{file.filename or '上传的照片'}"
+
+    updated_state = {**state, "photo_description": description}
+    supabase.table("sessions").update({"style_summary": updated_state}).eq("id", session_id).execute()
+    return {"success": True, "description": description}
+
+
 @router.post("/{session_id}/plan")
 async def create_plan(session_id: str):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
@@ -158,7 +191,15 @@ async def create_plan(session_id: str):
         raise HTTPException(status_code=502, detail=f"Plan generation failed: {str(e)}")
 
     supabase.table("sessions").update({"style_summary": {**state, "_plan": plan}}).eq("id", session_id).execute()
-    return {"plan": plan}
+
+    # 把 scenes 转成前端 analysis 页面期望的 title1/text1 格式
+    scenes = plan.get("scenes", [])
+    frontend_plan = {"concept": plan.get("concept", ""), "style": plan.get("style_archetype", "")}
+    for i, scene in enumerate(scenes[:3], start=1):
+        frontend_plan[f"title{i}"] = scene.get("headline", scene.get("role", ""))
+        frontend_plan[f"text{i}"] = scene.get("body", "")
+
+    return {"plan": frontend_plan, "_full_plan": plan}
 
 
 def extract_html(text: str) -> str:

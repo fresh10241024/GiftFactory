@@ -7,8 +7,15 @@ export default defineConfig({
     root: "src/",
     publicDir: "../public",
     server: {
-        host: true, // Open to local network and display URL
-        open: true, // Open in browser on development server start
+        host: true,
+        open: true,
+        proxy: {
+            '/api': {
+                target: 'https://web-production-53c2a.up.railway.app',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api/, ''),
+            },
+        },
     },
     build: {
         outDir: "../dist", // Output in the dist/ folder
