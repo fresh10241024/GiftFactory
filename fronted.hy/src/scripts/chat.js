@@ -71,15 +71,14 @@ export class ChatInteraction {
             }
         }
 
-        // Not logged in or fallback: create session
-        try {
-            const res = await createSession();
-            this.sessionId = res.session_id;
-            localStorage.setItem('chat_session_id', this.sessionId);
-        } catch (err) {
-            console.error("Failed to create session:", err);
-            this.questionEl.textContent = 'Network error, please refresh the page and try again.';
-        }
+        // Not logged in: prompt to log in
+        this.questionEl.textContent = 'Please log in first to create a gift.';
+        this.answerBtn.style.display = 'none';
+        const hint = document.createElement('a');
+        hint.href = './index.html';
+        hint.textContent = 'Go to login →';
+        hint.style.cssText = 'color:rgba(255,255,255,0.6);font-size:0.9rem;margin-top:16px;display:block;text-align:center';
+        this.questionEl.insertAdjacentElement('afterend', hint);
     }
 
     initPanel() {

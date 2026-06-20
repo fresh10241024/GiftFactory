@@ -63,19 +63,17 @@ SESSION_LIMIT = 5
 
 @router.post("")
 async def create_session(authorization: Optional[str] = Header(None)):
-    session_id = str(uuid.uuid4())
     user_id = _get_user_id(authorization)
-    if user_id:
-        count = supabase.table("sessions").select("id", count="exact").eq("user_id", user_id).execute()
-        if (count.count or 0) >= SESSION_LIMIT:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Maximum {SESSION_LIMIT} gifts can be saved. Please delete some in 'My Gifts' before creating new ones."
-            )
-    row = {"id": session_id, "status": "chatting", "style_summary": {}}
-    if user_id:
-        row["user_id"] = user_id
-    supabase.table("sessions").insert(row).execute()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Login required to create a gift session")
+    count = supabase.table("sessions").select("id", count="exact").eq("user_id", user_id).execute()
+    if (count.count or 0) >= SESSION_LIMIT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum {SESSION_LIMIT} gifts can be saved. Please delete some in 'My Gifts' before creating new ones."
+        )
+    session_id = str(uuid.uuid4())
+    supabase.table("sessions").insert({"id": session_id, "status": "chatting", "style_summary": {}, "user_id": user_id}).execute()
     return {"session_id": session_id}
 
 
