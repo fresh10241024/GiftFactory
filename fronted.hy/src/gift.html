@@ -22,7 +22,10 @@
     <div id="loading">
         <div class="spinner"></div>
         <div id="status-text">Generating your gift website...</div>
-        <div id="time-hint" style="font-size:0.75rem;opacity:0.3;margin-top:-12px">Usually takes 30–60 seconds</div>
+        <div id="progress-bar-wrap" style="width:260px;height:2px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:4px">
+            <div id="progress-bar" style="height:100%;width:0%;background:rgba(255,255,255,0.5);border-radius:2px;transition:width 1.2s ease"></div>
+        </div>
+        <div id="time-hint" style="font-size:0.72rem;opacity:0.3;margin-top:6px">AI is reading your story...</div>
     </div>
     <iframe id="gift-frame"></iframe>
     <div id="error-view">
@@ -53,17 +56,28 @@
             frame.style.display = 'block';
         }
 
+        const STAGES = [
+            [5,  'AI is reading your story...'],
+            [15, 'Designing the visual layout...'],
+            [30, 'Writing scene by scene...'],
+            [55, 'Polishing animations...'],
+            [75, 'Adding the finishing touches...'],
+            [90, 'Almost ready...'],
+        ];
+        function updateProgress(elapsed) {
+            let pct = 5, label = STAGES[0][1];
+            for (const [t, l] of STAGES) { if (elapsed >= t) { pct = Math.min(t / 90 * 92, 92); label = l; } }
+            document.getElementById('progress-bar').style.width = pct + '%';
+            document.getElementById('time-hint').textContent = label;
+        }
+
         async function poll(sid) {
-            const dots = ['·', '··', '···', '····'];
-            let d = 0, errCount = 0, elapsed = 0;
+            let errCount = 0, elapsed = 0;
             const timer = setInterval(() => {
-                elapsed += 0.7;
-                document.getElementById('status-text').textContent = 'Generating ' + dots[d++ % 4];
-                if (elapsed > 10) {
-                    const s = Math.round(elapsed);
-                    document.getElementById('time-hint').textContent = `Waiting for ${s} seconds, almost ready...`;
-                }
-            }, 700);
+                elapsed += 1;
+                document.getElementById('status-text').textContent = `Generating · ${elapsed}s`;
+                updateProgress(elapsed);
+            }, 1000);
             for (let i = 0; i < 80; i++) {
                 await new Promise(r => setTimeout(r, 3000));
                 try {
@@ -71,7 +85,7 @@
                     if (!res.ok) { errCount++; if (errCount >= 3) { clearInterval(timer); showError('Server error ' + res.status); return; } continue; }
                     errCount = 0;
                     const data = await res.json();
-                    if (data.status === 'done') { clearInterval(timer); showGift(data.slug); return; }
+                    if (data.status === 'done') { clearInterval(timer); document.getElementById('progress-bar').style.width='100%'; setTimeout(()=>showGift(data.slug), 400); return; }
                     if (data.status === 'error') { clearInterval(timer); showError(data.error); return; }
                 } catch (e) { errCount++; if (errCount >= 3) { clearInterval(timer); showError('Network error, please try again'); return; } }
             }

@@ -331,20 +331,19 @@ Other styles (bento_grid / scrapbook, etc.) do not use these templates, follow t
 Overall principle: Use at least one positioning method per act (bottom-left / bottom-right / mid-top / bottom-overflow), do not just flex center everything.
 
 ━━━━━━━━ IMAGES ━━━━━━━━
-Use unsplash IDs or picsum.photos as fallback:
-Reliable image URL formats:
-- picsum fallback: https://picsum.photos/1920/1080?random=1 (Increment number 1/2/3/4/5 for each act)
-- unsplash IDs: Replace PHOTOID in https://images.unsplash.com/photo-PHOTOID?w=1920&q=80&fit=crop
-  - Dark bookstore: 1529429215801-b0e52e4a2acf
-  - Rainy day: 1519681393784-d120267933ba
-  - Portrait silhouette: 1523531294919-4bcd7c65e216
-  - Sunset warm light: 1480714378408-67cf0d13bc1b
-
-━━━━━━━━ AVAILABLE EFFECTS (Max 3) ━━━━━━━━
-{skills}
+Use Unsplash source API — keywords from plan.unsplash_keywords:
+  https://source.unsplash.com/1920x1080/?{keywords}
+Fallback: https://picsum.photos/1920/1080?random=1 (increment per act)
+Do NOT use base64 images. Do NOT embed image data.
 
 ━━━━━━━━ OUTPUT SPECIFICATION ━━━━━━━━
-- Single file HTML, all CSS/JS inlined.
-- Fetch fonts from plan.typography, import Google Fonts.
+- Single file HTML.
+- In <head>, always include:
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=FONT_NAME:wght@300;400;900&display=swap" rel="stylesheet">
+  (Replace FONT_NAME with plan.typography font)
+- Use Tailwind utility classes for spacing/layout. Write custom CSS ONLY for effects not in Tailwind (aurora blobs, grain, marquee animation, etc.)
+- This saves 60-70% of CSS tokens — do not repeat what Tailwind already provides.
 - Output ONLY the HTML, no explanation, no markdown blocks.
 - The last line MUST be </html>"""
