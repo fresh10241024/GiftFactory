@@ -517,7 +517,8 @@ async def get_gift_status(session_id: str, authorization: Optional[str] = Header
         err = (row.get("style_summary") or {}).get("_error", "unknown")
         return {"status": "error", "error": err}
 
-    return {"status": "generating"}
+    # Session exists but generation hasn't started yet
+    return {"status": "pending"}
 
 
 

@@ -103,6 +103,8 @@
                 const data = await check.json();
                 if (data.status === 'done') { showGift(data.slug); return; }
                 if (data.status === 'generating') { poll(sessionId); return; }
+                if (data.status === 'error') { showError(data.error); return; }
+                // 'pending' or anything else: fall through to start generation
             } catch (e) {}
             try {
                 const res = await fetch(BASE + '/sessions/' + sessionId + '/generate', { method: 'POST', headers: authHeaders() });
