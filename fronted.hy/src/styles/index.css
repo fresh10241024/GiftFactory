@@ -292,3 +292,15 @@ body {
 .modal-content .close-button:hover {
   color: #ffffff;
 }
+
+.homepage-credit {
+  position: fixed;
+  bottom: 24rem;
+  right: 24rem;
+  font-size: 14rem;
+  opacity: 0.5;
+  z-index: 1000;
+  pointer-events: none;
+  font-family: var(--font-primary), Arial, sans-serif;
+  letter-spacing: 0.5px;
+}
