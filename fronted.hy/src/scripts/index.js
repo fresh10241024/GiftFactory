@@ -286,7 +286,8 @@ function closeModal(modal) {
 }
 function showStep(step) {
     ['auth-step-email', 'auth-step-code', 'auth-step-setpw'].forEach(id => {
-        document.getElementById(id).style.display = id === step ? '' : 'none';
+        const el = document.getElementById(id);
+        if (el) el.style.display = id === step ? '' : 'none';
     });
 }
 function formError(form, msg) {
@@ -302,7 +303,6 @@ function setBtnLoading(btn, loading, label) {
 }
 
 document.getElementById('open-auth-modal')?.addEventListener('click', () => {
-    showStep('auth-step-email');
     openModal(authModal);
 });
 document.addEventListener('click', (e) => {
@@ -448,7 +448,6 @@ if (tryForFreeBtn) {
             window.location.href = './chat.html';
         } else {
             localStorage.setItem('redirect_to_chat_after_login', 'true');
-            showStep('auth-step-email');
             openModal(authModal);
         }
     });
