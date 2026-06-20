@@ -459,8 +459,15 @@ if (tryForFreeBtn) {
 
 
 // Preload images then initialize everything
-preloadImages().then(() => {
-    document.body.classList.remove("loading") // Remove loading state from body
-    initSmoothScrolling() // Initialize smooth scrolling
-    new StickyGridScroll() // Initialize grid animation
-})
+preloadImages()
+    .then(() => {
+        document.body.classList.remove("loading")
+        initSmoothScrolling()
+        new StickyGridScroll()
+    })
+    .catch(() => {
+        // Always remove loading overlay even if images fail — otherwise the overlay blocks all clicks
+        document.body.classList.remove("loading")
+        initSmoothScrolling()
+        new StickyGridScroll()
+    })
