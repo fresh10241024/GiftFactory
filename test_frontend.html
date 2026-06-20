@@ -240,6 +240,9 @@ async function sendMessage() {
     if (data.ready && !isReady) {
       isReady = true
       document.getElementById('ready-banner').style.display = 'block'
+      document.getElementById('msg-input').disabled = true
+      document.getElementById('send-btn').disabled = true
+      document.getElementById('msg-input').placeholder = '信息已收集完毕，请点击生成按钮'
       showStep(3)
     }
   } catch (e) { log('log2', `✗ ${e.message}`) }
