@@ -49,6 +49,8 @@ At the end of every reply, output <state> (perceive mood based on emotion/song/s
 
 PLAN_PROMPT = """You are a designer who distills visual language from memories.
 
+CRITICAL: All output MUST be in English only. Headlines, body text, scene descriptions, all JSON string values — English only. User-provided content (songs, names, their own words) keep as-is, but everything you write must be English.
+
 User Materials: {state}
 
 Your task: Instead of letting the user choose a style, derive the visual language this website should have from the raw materials they provided (song, scene, photo description, their own words).
@@ -206,6 +208,8 @@ setTimeout(()=>{overlay.style.opacity=0; setTimeout(()=>overlay.remove(),600)},5
 
 
 GENERATE_WEBSITE_PROMPT = """You are a craftsman who turns memories into webpages.
+
+CRITICAL: ALL text visible on the webpage MUST be in English. Headlines, body copy, labels, navigation, sign-offs — everything you write must be English. The user's own quoted words are the only exception (keep verbatim).
 
 You are given a real material pack — a song, a scene, the user's own words, and a prepared five-act script.
 Your job: Make these materials come alive on the screen. Design serves the content, not vice versa.
