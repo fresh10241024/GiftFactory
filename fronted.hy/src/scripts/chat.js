@@ -17,7 +17,11 @@ export class ChatInteraction {
         // Finish Button
         this.finishBtn = document.getElementById('finish-chat-button');
         
-        // Session
+        // Session — URL param takes priority (from dashboard "继续" link)
+        const urlSession = new URLSearchParams(window.location.search).get('session');
+        if (urlSession) {
+            localStorage.setItem('chat_session_id', urlSession);
+        }
         this.sessionId = localStorage.getItem('chat_session_id');
 
         this.initSession();
