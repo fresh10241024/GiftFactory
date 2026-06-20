@@ -147,26 +147,39 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     messages.append({"role": "user", "content": body.message})
 
+    # Inject current accumulated state so AI knows exactly what it has
+    current_state = session.get("style_summary") or {}
+    collected = {k: v for k, v in current_state.items() if v and v is not False and k != "mood"}
+    state_hint = ""
+    if collected:
+        state_hint = f"\n\nCURRENTLY COLLECTED (do NOT re-ask these):\n{json.dumps(collected, ensure_ascii=False)}"
+        has_recipient = bool(collected.get("recipient_name"))
+        has_song_or_scene = bool(collected.get("song") or collected.get("key_scene"))
+        has_words = bool(collected.get("user_own_words"))
+        if has_recipient and has_song_or_scene and has_words:
+            state_hint += "\n\nAll required materials are collected. Set ready=true NOW and reply with only: Materials collected."
+
     try:
         response = client.messages.create(
             model="claude-haiku-4-5",
             max_tokens=1024,
-            system=CONVERSATION_SYSTEM,
+            system=CONVERSATION_SYSTEM + state_hint,
             messages=messages
         )
         raw_reply = response.content[0].text
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI error: {str(e)}")
 
-    # Parse state
-    state = extract_state(raw_reply)
+    # Parse state — merge with existing so data is never lost
+    new_state = extract_state(raw_reply)
+    merged_state = {**current_state, **(new_state or {})}
     reply = clean_reply(raw_reply)
-    ready = state.get("ready", False) if state else False
+    ready = merged_state.get("ready", False)
 
     # Update session state
-    if state:
+    if new_state or ready:
         supabase.table("sessions").update({
-            "style_summary": state,
+            "style_summary": merged_state,
             "status": "ready" if ready else "chatting"
         }).eq("id", session_id).execute()
 
@@ -177,11 +190,11 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
         "content": raw_reply
     }).execute()
 
-    mood = (state or {}).get("mood", {"bg": "#0a0a0f", "accent": "#a0a0c0", "particle": "float"})
+    mood = merged_state.get("mood", {"bg": "#0a0a0f", "accent": "#a0a0c0", "particle": "float"})
     return {
         "reply": reply,
         "ready": ready,
-        "state": state,
+        "state": merged_state,
         "mood": mood
     }
 
