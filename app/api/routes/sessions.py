@@ -309,15 +309,18 @@ def extract_html(text: str) -> str:
 def _call_claude(prompt: str) -> str:
     ds = _make_deepseek()
     if ds:
-        r = ds.chat.completions.create(
-            model="deepseek-chat",
-            max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return r.choices[0].message.content
+        try:
+            r = ds.chat.completions.create(
+                model="deepseek-chat",
+                max_tokens=4000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return r.choices[0].message.content
+        except Exception as e:
+            print(f"[deepseek] failed ({e}), falling back to Claude")
     response = client.messages.create(
         model="claude-haiku-4-5",
-        max_tokens=3500,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}]
     )
     return response.content[0].text
