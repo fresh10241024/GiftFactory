@@ -176,8 +176,9 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     reply = clean_reply(raw_reply)
     ready = merged_state.get("ready", False)
 
-    # Update session state
-    if new_state or ready:
+    # Update session state — never overwrite done/generating status
+    current_status = session.get("status", "chatting")
+    if (new_state or ready) and current_status not in ("done", "generating"):
         supabase.table("sessions").update({
             "style_summary": merged_state,
             "status": "ready" if ready else "chatting"
