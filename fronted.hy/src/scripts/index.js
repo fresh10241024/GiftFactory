@@ -294,7 +294,11 @@ function formError(form, msg) {
 }
 function setBtnLoading(btn, loading, label) {
     btn.disabled = loading;
-    btn.textContent = loading ? 'Please wait...' : label;
+    if (loading) {
+        btn.innerHTML = `<span class="loading-spinner"></span> Please wait...`;
+    } else {
+        btn.innerHTML = `<span class="roll-text"><span class="roll-text-inner" data-text="${label}">${label}</span></span>`;
+    }
 }
 
 document.getElementById('open-auth-modal')?.addEventListener('click', () => {

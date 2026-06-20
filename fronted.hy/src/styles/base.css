@@ -248,9 +248,9 @@ button:hover {
 }
 
 .frame__auth-buttons .button--login:hover {
-  background-color: #ff6f00;
-  color: #fff;
-  border-color: #ff6f00;
+  background-color: #f3f3f3;
+  color: #000;
+  border-color: #bbb;
 }
 
 .frame__auth-buttons .button--signup {
@@ -263,4 +263,37 @@ button:hover {
   background-color: #333;
   color: #fff;
   border-color: #333;
+}
+
+/* Shared roll-text styles for elegant button transitions */
+.roll-text {
+  display: inline-flex;
+  overflow: hidden;
+  position: relative;
+  vertical-align: middle;
+  justify-content: center;
+  align-items: center;
+}
+
+.roll-text-inner {
+  display: inline-block;
+  position: relative;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+}
+
+.roll-text-inner::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: -100%;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Hover effects to trigger roll */
+button:hover .roll-text-inner,
+a:hover .roll-text-inner {
+  transform: translateY(100%);
 }

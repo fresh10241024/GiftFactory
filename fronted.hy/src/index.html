@@ -21,7 +21,9 @@
     </div>
     <div class="frame__auth-buttons">
       <a href="./dashboard.html" id="my-gifts-link" style="display:none;color:inherit;text-decoration:none;opacity:0.7;font-size:0.9rem;margin-right:20px">My Gifts</a>
-      <button class="button--login" id="open-auth-modal">Log in / Sign up</button>
+      <button class="button--login" id="open-auth-modal">
+        <span class="roll-text"><span class="roll-text-inner" data-text="Log in / Sign up">Log in / Sign up</span></span>
+      </button>
     </div>
   </header>
   <main>
@@ -93,18 +95,22 @@ A custom website gift for someone special.</figcaption>
       <!-- Step 1: email -->
       <div id="auth-step-email">
         <h2 id="auth-title">Log in / Sign up</h2>
-        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 16px">Enter email to receive code</p>
+        <p class="modal-subtitle">—</p>
         <form id="auth-email-form">
           <input type="email" id="auth-email" placeholder="your@email.com" required autocomplete="email">
-          <button type="submit">Send Code</button>
+          <button type="submit">
+            <span class="roll-text"><span class="roll-text-inner" data-text="Send Code">Send Code</span></span>
+          </button>
           <p class="form-error"></p>
         </form>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
-          <p style="font-size:0.85rem;opacity:0.5;margin:0 0 10px">Have a password? Log in directly</p>
+          <p class="modal-subtitle">—</p>
           <form id="auth-password-form">
             <input type="email" id="auth-pw-email" placeholder="Email" required autocomplete="email">
             <input type="password" id="auth-pw-password" placeholder="Password" required autocomplete="current-password">
-            <button type="submit">Log in</button>
+            <button type="submit">
+              <span class="roll-text"><span class="roll-text-inner" data-text="Log in">Log in</span></span>
+            </button>
             <p class="form-error"></p>
           </form>
         </div>
@@ -125,7 +131,9 @@ A custom website gift for someone special.</figcaption>
         <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 20px">You can use Email+Password to log in directly next time without waiting for a code</p>
         <form id="auth-setpw-form">
           <input type="password" id="auth-new-password" placeholder="Set password (min 6 chars)" minlength="6" autocomplete="new-password">
-          <button type="submit">Save password</button>
+          <button type="submit">
+            <span class="roll-text"><span class="roll-text-inner" data-text="Save password">Save password</span></span>
+          </button>
           <p class="form-error"></p>
         </form>
         <button id="auth-skip-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">Skip, maybe later</button>

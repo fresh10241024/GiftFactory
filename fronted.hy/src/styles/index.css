@@ -99,7 +99,7 @@ body {
 }
 
 .content__button.button--primary {
-  background-color: #ff6f00;
+  background-color: #4F7162;
   color: #fff;
   padding: 15px 40px;
   border-radius: 30px;
@@ -189,11 +189,21 @@ body {
 }
 
 .modal-content h2 {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   color: #ffffff;
   font-size: 28px;
   font-family: var(--font-secondary), Times, serif;
   font-weight: normal;
+}
+
+.modal-content .modal-subtitle {
+  font-size: 1.2rem;
+  opacity: 0.35;
+  margin: -16px auto 24px;
+  font-family: var(--font-secondary), Times, serif;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: #ffffff;
 }
 
 .modal-content form {
@@ -241,6 +251,10 @@ body {
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 .modal-content button[type="submit"]:hover {
