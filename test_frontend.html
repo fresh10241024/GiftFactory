@@ -153,6 +153,7 @@ async function sendMessage() {
 
 async function generateGift() {
   document.getElementById('gen-btn').disabled = true
+  let pollTimer = null
 
   try {
     // 第一步：生成创意方案
@@ -165,26 +166,40 @@ async function generateGift() {
       return
     }
     const p = planData.plan
-    log('log3', `💡 方案：${p.concept} | ${p.technique}`)
+    log('log3', `💡 方案：${p.concept}`)
 
-    // 第二步：生成 HTML
-    await new Promise(r => setTimeout(r, 800))
-    log('log3', '🎨 第二步：正在生成你的专属网站（约 30-60 秒）...')
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 180000)
-    const res = await fetch(`${BASE}/sessions/${sessionId}/generate`, { method: 'POST', signal: controller.signal })
-    clearTimeout(timer)
+    // 第二步：发起生成（立即返回，后台跑）
+    await new Promise(r => setTimeout(r, 600))
+    const res = await fetch(`${BASE}/sessions/${sessionId}/generate`, { method: 'POST' })
     const data = await res.json()
     if (!res.ok) {
       log('log3', `❌ 错误 ${res.status}：${JSON.stringify(data)}`)
       document.getElementById('gen-btn').disabled = false
       return
     }
-    giftSlug = data.slug
-    document.getElementById('gift-slug').textContent = `slug: ${giftSlug}`
-    log('log3', `✅ 生成成功！slug: ${giftSlug}`)
-    document.getElementById('gift-frame').src = `${BASE}/gifts/${giftSlug}`
-    showStep(4)
+
+    // 第三步：轮询直到完成
+    let dots = 0
+    const poll = async () => {
+      dots = (dots + 1) % 4
+      log('log3', `🎨 正在生成专属网站${'．'.repeat(dots)}（约 1-2 分钟）`)
+      const r = await fetch(`${BASE}/sessions/${sessionId}/gift`)
+      const d = await r.json()
+      if (d.status === 'done') {
+        giftSlug = d.slug
+        document.getElementById('gift-slug').textContent = `slug: ${giftSlug}`
+        log('log3', `✅ 生成成功！slug: ${giftSlug}`)
+        document.getElementById('gift-frame').src = `${BASE}/gifts/${giftSlug}`
+        showStep(4)
+      } else if (d.status === 'error') {
+        log('log3', '❌ 生成失败，请重试')
+        document.getElementById('gen-btn').disabled = false
+      } else {
+        pollTimer = setTimeout(poll, 3000)
+      }
+    }
+    pollTimer = setTimeout(poll, 3000)
+
   } catch (e) {
     log('log3', `❌ 失败：${e.message}`)
     document.getElementById('gen-btn').disabled = false

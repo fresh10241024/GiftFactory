@@ -1,7 +1,7 @@
 import re
 import json
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from anthropic import Anthropic
 from app.db import supabase
@@ -164,48 +164,72 @@ def extract_html(text: str) -> str:
     return html
 
 
+def _run_generation(session_id: str, state: dict, plan: dict):
+    try:
+        prompt = GENERATE_WEBSITE_PROMPT.format(
+            state=json.dumps(state, ensure_ascii=False),
+            plan=json.dumps(plan, ensure_ascii=False)
+        )
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=8192,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        html = extract_html(response.content[0].text)
+        slug = str(uuid.uuid4())[:8]
+        supabase.table("gifts").insert({
+            "id": str(uuid.uuid4()),
+            "session_id": session_id,
+            "slug": slug,
+            "html": html
+        }).execute()
+        supabase.table("sessions").update({"status": "done"}).eq("id", session_id).execute()
+    except Exception as e:
+        supabase.table("sessions").update({"status": "error"}).eq("id", session_id).execute()
+
+
 @router.post("/{session_id}/generate")
-async def generate_gift(session_id: str):
+async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
 
     if session.get("status") == "done":
-        existing = supabase.table("gifts").select("slug, html") \
+        existing = supabase.table("gifts").select("slug") \
             .eq("session_id", session_id).order("created_at", desc=True).limit(1).execute()
         if existing.data:
-            return {"slug": existing.data[0]["slug"]}
+            return {"status": "done", "slug": existing.data[0]["slug"]}
+
+    if session.get("status") == "generating":
+        return {"status": "generating"}
 
     if not session.get("style_summary"):
         raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
 
-    state = session.get("style_summary", {})
+    state = dict(session.get("style_summary", {}))
     plan = state.pop("_plan", {})
-    prompt = GENERATE_WEBSITE_PROMPT.format(
-        state=json.dumps(state, ensure_ascii=False),
-        plan=json.dumps(plan, ensure_ascii=False)
-    )
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=8192,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    supabase.table("sessions").update({"status": "generating"}).eq("id", session_id).execute()
+    background_tasks.add_task(_run_generation, session_id, state, plan)
+    return {"status": "generating"}
 
-    html = extract_html(response.content[0].text)
-    slug = str(uuid.uuid4())[:8]
 
-    supabase.table("gifts").insert({
-        "id": str(uuid.uuid4()),
-        "session_id": session_id,
-        "slug": slug,
-        "html": html
-    }).execute()
+@router.get("/{session_id}/gift")
+async def get_gift_status(session_id: str):
+    result = supabase.table("sessions").select("status").eq("id", session_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    status = result.data[0]["status"]
+    if status == "done":
+        existing = supabase.table("gifts").select("slug") \
+            .eq("session_id", session_id).order("created_at", desc=True).limit(1).execute()
+        if existing.data:
+            return {"status": "done", "slug": existing.data[0]["slug"]}
+    if status == "error":
+        return {"status": "error"}
+    return {"status": "generating"}
 
-    supabase.table("sessions").update({"status": "done"}).eq("id", session_id).execute()
-
-    return {"slug": slug}
 
 
 @router.get("/{session_id}/messages")
