@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GiftFactory 测试前端</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #333; }
+  .container { max-width: 700px; margin: 40px auto; padding: 0 20px; }
+  h1 { font-size: 1.4rem; margin-bottom: 24px; color: #111; }
+  .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: .05em; color: #999; margin-bottom: 12px; }
+  button {
+    background: #111; color: #fff; border: none; padding: 10px 20px;
+    border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+  }
+  button:hover { background: #333; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  .tag { display: inline-block; background: #f0f0f0; padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; color: #666; margin-bottom: 12px; }
+  .tag.green { background: #d4edda; color: #155724; }
+  .messages { max-height: 320px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { padding: 10px 14px; border-radius: 10px; font-size: 0.9rem; line-height: 1.5; max-width: 85%; }
+  .msg.user { background: #111; color: #fff; align-self: flex-end; }
+  .msg.assistant { background: #f0f0f0; color: #333; align-self: flex-start; }
+  .input-row { display: flex; gap: 8px; }
+  input[type=text] {
+    flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 0.9rem; outline: none;
+  }
+  input[type=text]:focus { border-color: #111; }
+  .log { font-size: 0.78rem; color: #999; margin-top: 8px; font-family: monospace; }
+  .gift-frame { width: 100%; height: 500px; border: none; border-radius: 8px; background: #000; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .ready-banner { background: #d4edda; color: #155724; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🎁 GiftFactory 测试前端</h1>
+
+  <!-- Step 1: 创建 Session -->
+  <div class="card step active" id="step1">
+    <h2>第一步：开始一次礼物设计</h2>
+    <button onclick="createSession()">创建 Session</button>
+    <div class="log" id="log1"></div>
+  </div>
+
+  <!-- Step 2: 对话 -->
+  <div class="card step" id="step2">
+    <h2>第二步：和 AI 对话</h2>
+    <div class="tag" id="session-tag">session: -</div>
+    <div class="messages" id="messages"></div>
+    <div id="ready-banner" class="ready-banner" style="display:none">✅ 信息收集完毕，可以生成礼物了！</div>
+    <div class="input-row">
+      <input type="text" id="msg-input" placeholder="输入你的消息..." onkeydown="if(event.key==='Enter')sendMessage()" />
+      <button onclick="sendMessage()" id="send-btn">发送</button>
+    </div>
+    <div class="log" id="log2"></div>
+  </div>
+
+  <!-- Step 3: 生成礼物 -->
+  <div class="card step" id="step3">
+    <h2>第三步：生成礼物网站</h2>
+    <p style="font-size:.9rem;color:#666;margin-bottom:12px">AI 会根据对话内容生成一个独一无二的网站，需要约 10-20 秒。</p>
+    <button onclick="generateGift()" id="gen-btn">✨ 生成礼物</button>
+    <div class="log" id="log3"></div>
+  </div>
+
+  <!-- Step 4: 预览礼物 -->
+  <div class="card step" id="step4">
+    <h2>第四步：礼物预览</h2>
+    <div class="tag green" id="gift-slug">slug: -</div>
+    <iframe class="gift-frame" id="gift-frame" src="about:blank"></iframe>
+    <div style="margin-top:12px">
+      <button onclick="openGift()">在新标签页打开</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = 'https://web-production-53c2a.up.railway.app'
+let sessionId = null
+let isReady = false
+let giftSlug = null
+
+function log(id, msg) {
+  document.getElementById(id).textContent = msg
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach((el, i) => {
+    el.classList.toggle('active', i < n)
+  })
+}
+
+async function createSession() {
+  log('log1', '创建中...')
+  try {
+    const res = await fetch(`${BASE}/sessions`, { method: 'POST' })
+    const data = await res.json()
+    sessionId = data.session_id
+    document.getElementById('session-tag').textContent = `session: ${sessionId}`
+    log('log1', `✅ 创建成功：${sessionId}`)
+    showStep(2)
+    // 发一条开场消息
+    appendMessage('assistant', '你好！我是你的礼物设计师 🎁 你想为谁定制这份礼物呢？')
+  } catch (e) {
+    log('log1', `❌ 失败：${e.message}`)
+  }
+}
+
+function appendMessage(role, content) {
+  const el = document.createElement('div')
+  el.className = `msg ${role}`
+  el.textContent = content
+  document.getElementById('messages').appendChild(el)
+  document.getElementById('messages').scrollTop = 9999
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input')
+  const text = input.value.trim()
+  if (!text || !sessionId) return
+  input.value = ''
+  appendMessage('user', text)
+  document.getElementById('send-btn').disabled = true
+  log('log2', 'AI 思考中...')
+
+  try {
+    const res = await fetch(`${BASE}/sessions/${sessionId}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    })
+    const data = await res.json()
+    appendMessage('assistant', data.reply)
+    log('log2', '')
+
+    if (data.ready && !isReady) {
+      isReady = true
+      document.getElementById('ready-banner').style.display = 'block'
+      showStep(3)
+    }
+  } catch (e) {
+    log('log2', `❌ 失败：${e.message}`)
+  } finally {
+    document.getElementById('send-btn').disabled = false
+    document.getElementById('msg-input').focus()
+  }
+}
+
+async function generateGift() {
+  document.getElementById('gen-btn').disabled = true
+  log('log3', '⏳ AI 正在创作你的专属网站，请稍等（约 15 秒）...')
+
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 180000)
+    const res = await fetch(`${BASE}/sessions/${sessionId}/generate`, { method: 'POST', signal: controller.signal })
+    clearTimeout(timer)
+    const data = await res.json()
+    if (!res.ok) {
+      log('log3', `❌ 错误 ${res.status}：${JSON.stringify(data)}`)
+      document.getElementById('gen-btn').disabled = false
+      return
+    }
+    giftSlug = data.slug
+    document.getElementById('gift-slug').textContent = `slug: ${giftSlug}`
+    log('log3', `✅ 生成成功！slug: ${giftSlug}`)
+    document.getElementById('gift-frame').src = `${BASE}/gifts/${giftSlug}`
+    showStep(4)
+  } catch (e) {
+    log('log3', `❌ 失败：${e.message}`)
+    document.getElementById('gen-btn').disabled = false
+  }
+}
+
+function openGift() {
+  window.open(`${BASE}/gifts/${giftSlug}`, '_blank')
+}
+</script>
+</body>
+</html>
