@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curate a Gift - Chat</title>
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/chat.css">
+</head>
+<body class="chat-page">
+    <header class="chat-header">
+        <div class="header-left">
+            <span>Curate a gift</span>
+        </div>
+        <div class="header-right">
+            <div class="artwork-info">
+                <span class="artwork-title">The Great Wave off Kanagawa</span>
+                <span class="artwork-date">1830-1833</span>
+                <span class="artwork-medium">Woodblock Print</span>
+            </div>
+            <img src="/1.webp" alt="Artwork" class="artwork-thumb">
+        </div>
+    </header>
+
+    <main class="chat-container">
+        <div class="chat-interaction">
+            <div class="question-container">
+                <h1 id="current-question">Who do you want to customize this gift for?</h1>
+            </div>
+            <div class="answer-container">
+                <div class="actions-wrapper">
+                    <div class="answer-button-wrapper">
+                        <div id="answer-button" class="answer-button" tabindex="0">
+                            <span class="button-text">Answer</span>
+                            <div class="input-wrapper">
+                                <span class="input-measure"></span>
+                                <input type="text" id="answer-input" class="answer-input" autocomplete="off" spellcheck="false" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="upload-wrapper">
+                        <button class="upload-button" id="upload-button" aria-label="Upload image">
+                            <div class="upload-icon-bg">
+                                <span class="upload-icon-plus">+</span>
+                            </div>
+                        </button>
+                        <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="finish-chat-wrapper">
+        <button id="finish-chat-button" class="finish-chat-button">
+            Generate Analysis <span>→</span>
+        </button>
+    </div>
+
+    <script type="module" src="./scripts/chat.js"></script>
+</body>
+</html>

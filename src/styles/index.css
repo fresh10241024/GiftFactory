@@ -1,0 +1,256 @@
+html {
+    font-size: calc(100vw / 1440);
+}
+
+body {
+    font-family: var(--font-primary);
+    font-size: 16rem;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* ---------------- Block intro ---------------- */
+
+.block--intro {
+    position: relative;
+    z-index: 1;
+}
+
+.media {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    padding: 0 24rem;
+}
+
+.media__image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: lightgray;
+}
+
+.media__caption {
+    position: relative;
+    width: 221rem;
+    font-size: 14rem;
+    line-height: 1.3;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+/* ---------------- Block main ---------------- */
+
+.block.block--main {
+    height: 425vh;
+}
+
+.block__wrapper {
+    position: sticky;
+    top: 0;
+    padding: 0 24rem;
+    will-change: transform;
+    overflow: hidden;
+}
+
+.content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    text-align: center;
+    z-index: 1;
+}
+
+.content__title {
+    width: 924rem;
+    font-family: var(--font-secondary);
+    font-size: 104rem;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.content__description {
+    width: 455rem;
+    margin-top: 24rem;
+    font-size: 14rem;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+.content__button {
+    margin-top: 32rem;
+    font-size: 14rem;
+    text-transform: uppercase;
+
+    &:hover {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+}
+
+.content__button.button--primary {
+  background-color: #ff6f00;
+  color: #fff;
+  padding: 15px 40px;
+  border-radius: 30px;
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: none;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.content__button.button--primary:hover {
+  background-color: #333;
+  color: #fff;
+  text-decoration: none;
+  text-underline-offset: 0;
+}
+
+/* ---------------- Gallery ---------------- */
+
+.gallery {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate3d(-50%, -50%, 0);
+    width: 736rem;
+}
+
+.gallery__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 32rem;
+    row-gap: 40rem;
+    will-change: transform;
+}
+
+.gallery__item {
+    width: 100%;
+    aspect-ratio: 1;
+    will-change: transform;
+}
+
+.gallery__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: lightgray;
+}
+
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 10001; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0, 0, 0, 0.6); /* Black w/ opacity */
+  justify-content: center;
+  align-items: center;
+}
+
+.modal.is-active {
+  display: flex;
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: auto;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  text-align: center;
+}
+
+.modal-content h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 24px;
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.modal-content label {
+  text-align: left;
+  font-weight: bold;
+  color: #555;
+}
+
+.modal-content input[type="email"],
+.modal-content input[type="password"] {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  width: 100%;
+}
+
+.modal-content button[type="submit"] {
+  background-color: #ff6f00;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 5px;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.modal-content button[type="submit"]:hover {
+  background-color: #e66000;
+}
+
+.modal-content .social-login button {
+  background-color: #eee;
+  color: #333;
+  padding: 10px 15px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  cursor: pointer;
+  margin: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.modal-content .social-login button:hover {
+  background-color: #e0e0e0;
+}
+
+.modal-content .close-button {
+  position: absolute;
+  top: 15px;
+  right: 25px;
+  color: #aaa;
+  font-size: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.modal-content .close-button:hover,
+.modal-content .close-button:focus {
+  color: #000;
+  text-decoration: none;
+}

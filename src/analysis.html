@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gift Analysis</title>
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/analysis.css">
+</head>
+<body class="analysis-page">
+    <header class="analysis-header">
+        <div class="header-left">
+            <span>Curate a gift</span>
+        </div>
+        <div class="header-right">
+            <span>AI Insights</span>
+        </div>
+    </header>
+
+    <main class="analysis-container">
+        <div class="analysis-card">
+            <div id="analysis-content" class="analysis-content">
+                <!-- Content will be injected here dynamically -->
+            </div>
+            <div class="loading-indicator" id="loading-indicator">
+                Generating your unique gift analysis...
+            </div>
+        </div>
+        
+        <div class="action-footer" id="action-footer" style="opacity: 0; pointer-events: none;">
+            <button class="primary-btn" id="reveal-gift-btn">Reveal Gift</button>
+        </div>
+    </main>
+
+    <script type="module" src="./scripts/analysis.js"></script>
+</body>
+</html>

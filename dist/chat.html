@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Page</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        iframe {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/chat-CwnvTluE.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="./assets/chat-DHc26m7T.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-vQ6euPW-.css">
+</head>
+<body>
+    <iframe id="chat-iframe" src="/chat-template-assets/index.html" title="Depth Gallery Chat Interface"></iframe>
+
+    <div class="chat-container">
+        <div class="chat-overlay"></div>
+        <div class="chat-questions">
+            <p id="question-text">加载中...</p>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" class="chat-input" placeholder="在这里输入你的回答..." aria-label="用户输入框">
+            <input type="file" id="file-input" accept="image/*" style="display: none;">
+            <button id="upload-image-button" class="chat-navigation button--primary">上传图片</button>
+            <div class="chat-navigation">
+                <button id="prev-button" disabled>上一步</button>
+                <button id="next-button" disabled>下一步</button>
+            </div>
+        </div>
+        <div class="chat-progress">
+            <span id="current-step">0</span> / <span id="total-steps">5</span>
+        </div>
+    </div>
+
+</body>
+</html>
