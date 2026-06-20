@@ -7,6 +7,7 @@ export class ChatInteraction {
         this.buttonText = this.answerBtn.querySelector('.button-text');
         this.measure = this.answerBtn.querySelector('.input-measure');
         this.questionEl = document.getElementById('current-question');
+        this.enterHint = document.getElementById('enter-hint');
         
         // Upload Elements
         this.uploadBtn = document.getElementById('upload-button');
@@ -140,11 +141,20 @@ export class ChatInteraction {
         this.answerBtn.style.width = '';
         this.answerBtn.style.height = '';
         this.input.style.fontSize = '';
+        this.enterHint.classList.remove('is-visible');
     }
 
     adjustSize() {
-        const text = this.input.value || '|';
-        this.measure.textContent = text;
+        const text = this.input.value;
+        const textToMeasure = text || '|';
+        this.measure.textContent = textToMeasure;
+        
+        // Show enter hint if there is text
+        if (text.trim().length > 0) {
+            this.enterHint.classList.add('is-visible');
+        } else {
+            this.enterHint.classList.remove('is-visible');
+        }
         
         // Base sizes
         const minSize = 200;

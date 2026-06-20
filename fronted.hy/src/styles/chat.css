@@ -272,10 +272,11 @@
 .input-wrapper {
     display: none;
     position: relative;
-    width: 80%;
-    height: 80%;
+    width: 100%;
+    height: 100%;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
 }
 
 .answer-button.is-active .input-wrapper {
@@ -289,7 +290,7 @@
     font-size: 24px;
     text-align: center;
     width: 100%;
-    height: 100%;
+    height: auto;
     outline: none;
     font-family: var(--font-primary), Arial, sans-serif;
     caret-color: #ffffff; /* The | cursor */
@@ -308,4 +309,24 @@
     white-space: pre-wrap;
     font-size: 24px;
     font-family: var(--font-primary), Arial, sans-serif;
+}
+
+.enter-hint {
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.enter-hint.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
