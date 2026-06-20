@@ -262,63 +262,89 @@ knit_textile:
   background: repeating-linear-gradient(45deg, rgba(139,69,19,0.06) 0px, transparent 2px, transparent 8px, rgba(139,69,19,0.06) 8px).
   border: 3px dashed #C4A882; primary color #F5E6D3; font-family: 'Fredoka One' or rounded fonts.
 
-━━━━━━━━ LAYOUT DISCIPLINE ━━━━━━━━
-- Only one focal point per act.
-- Main text max 3 lines, subtext max 5 lines.
-- Decorative elements opacity ≤ 0.12, must not obscure text.
-- One background type per act: Solid color / Gradient / Image (Pick one).
-- Max 3 position:absolute decorations per act.
+━━━━━━━━ MANDATORY HTML SKELETON — Fill in the blanks, do not change the structure ━━━━━━━━
 
-━━━━━━━━ COMPOSITION TEMPLATES (Vary layouts across acts, do not center everything) ━━━━━━━━
+You MUST output a complete HTML file using EXACTLY this skeleton. The scene-switching JS is already written — your job is to fill in the 5 scenes with visuals and content.
 
-cinematic_hero act layouts — each act position: fixed; inset: 0, internal elements all use position: absolute:
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Gift</title>
+<link href="https://fonts.googleapis.com/css2?family=CHOSEN_FONT:wght@300;400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{overflow:hidden;background:#000;font-family:'CHOSEN_FONT',sans-serif}}
+.scene{{position:fixed;inset:0;opacity:0;pointer-events:none;transition:opacity 0.8s ease;cursor:pointer;overflow:hidden}}
+.scene.active{{opacity:1;pointer-events:all}}
+/* Scene counter */
+#counter{{position:fixed;bottom:24px;right:28px;font-size:0.7rem;letter-spacing:0.2em;opacity:0.4;z-index:100;color:#fff;mix-blend-mode:difference}}
+/* WRITE YOUR CUSTOM CSS HERE — aurora blobs, grain, marquee keyframes, etc. */
+</style>
+</head>
+<body>
 
-【Act 1 Opening — SAKAZUKI style composition】
-<div class="scene active" style="position:fixed;inset:0;overflow:hidden;cursor:pointer">
-  <img src="[IMAGE_URL]" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.2) 60%,transparent 100%)"></div>
-  <!-- Subtitle centered top -->
-  <div style="position:absolute;top:42%;left:0;right:0;text-align:center;font-size:0.8rem;letter-spacing:0.35em;opacity:0.6">SUBTITLE</div>
-  <!-- Giant headline anchored bottom, intentionally overflowing -->
-  <div style="position:absolute;bottom:-0.08em;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:clamp(6rem,20vw,26rem);line-height:0.88;letter-spacing:-0.04em;font-weight:900">HEADLINE</div>
+<!-- ACT 1: Opening -->
+<div class="scene active" id="s1">
+  <!-- FILL: background (image/gradient/color), giant headline, subtitle -->
+  <!-- Layout: bottom-anchored giant text overflowing edges, centered subtitle above -->
 </div>
 
-【Act 2/3 Narrative — Left-aligned vertical composition】
-<div style="position:absolute;bottom:12%;left:8%;max-width:55%">
-  <div style="font-size:0.7rem;letter-spacing:0.3em;opacity:0.5;margin-bottom:1.5rem">02 / NARRATIVE</div>
-  <div style="font-size:clamp(2.5rem,7vw,8rem);line-height:0.9;font-weight:900;margin-bottom:2rem">HEADLINE</div>
-  <div style="font-size:1rem;line-height:1.8;opacity:0.85;font-weight:300">BODY</div>
+<!-- ACT 2: About the recipient -->
+<div class="scene" id="s2">
+  <!-- FILL: background, left-aligned headline + body paragraph -->
+  <!-- Layout: text block bottom-left, image right or as background -->
 </div>
 
-【Act 4 Climax — Pure black, user's own words filling the frame】
-<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#080808">
-  <div style="font-size:clamp(2rem,6vw,8rem);line-height:1.1;text-align:center;max-width:80%;font-weight:900">USER_WORDS</div>
+<!-- ACT 3: The moment -->
+<div class="scene" id="s3">
+  <!-- FILL: evocative background image, headline, sensory body text -->
+  <!-- Layout: vary from act 2 — try top-right or centered with wide margins -->
 </div>
 
-【Act 5 Closing — Right-aligned, letter feel】
-<div style="position:absolute;bottom:15%;right:8%;text-align:right">
-  <div style="font-size:clamp(2rem,5vw,6rem);font-weight:900;margin-bottom:2rem">HEADLINE</div>
-  <div style="font-size:1rem;line-height:2;opacity:0.7;font-weight:300">BODY</div>
-  <div style="margin-top:3rem;font-size:0.9rem;letter-spacing:0.15em;opacity:0.6">SIGN-OFF</div>
+<!-- ACT 4: Message — user's own words -->
+<div class="scene" id="s4">
+  <!-- FILL: dark/dramatic background, user's verbatim words as the ONLY large element -->
+  <!-- Layout: words centered, very large, breathing room all around -->
 </div>
 
-Other styles (bento_grid / scrapbook, etc.) do not use these templates, follow their own logic.
-Overall principle: Use at least one positioning method per act (bottom-left / bottom-right / mid-top / bottom-overflow), do not just flex center everything.
+<!-- ACT 5: Closing -->
+<div class="scene" id="s5">
+  <!-- FILL: soft/warm background, closing headline, body, sign-off -->
+  <!-- Layout: right-aligned, letter feel -->
+</div>
 
-━━━━━━━━ IMAGES ━━━━━━━━
-Use Unsplash source API — keywords from plan.unsplash_keywords:
-  https://source.unsplash.com/1920x1080/?{keywords}
-Fallback: https://picsum.photos/1920/1080?random=1 (increment per act)
-Do NOT use base64 images. Do NOT embed image data.
+<div id="counter">1 / 5</div>
 
-━━━━━━━━ OUTPUT SPECIFICATION ━━━━━━━━
-- Single file HTML.
-- In <head>, always include:
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=FONT_NAME:wght@300;400;900&display=swap" rel="stylesheet">
-  (Replace FONT_NAME with plan.typography font)
-- Use Tailwind utility classes for spacing/layout. Write custom CSS ONLY for effects not in Tailwind (aurora blobs, grain, marquee animation, etc.)
-- This saves 60-70% of CSS tokens — do not repeat what Tailwind already provides.
-- Output ONLY the HTML, no explanation, no markdown blocks.
-- The last line MUST be </html>"""
+<script>
+const scenes = document.querySelectorAll('.scene');
+const counter = document.getElementById('counter');
+let cur = 0;
+function goTo(n) {{
+  scenes[cur].classList.remove('active');
+  cur = (n + scenes.length) % scenes.length;
+  scenes[cur].classList.add('active');
+  counter.textContent = (cur+1) + ' / ' + scenes.length;
+}}
+scenes.forEach(s => s.addEventListener('click', () => goTo(cur + 1)));
+document.addEventListener('keydown', e => {{
+  if (e.key === 'ArrowRight' || e.key === ' ') goTo(cur + 1);
+  if (e.key === 'ArrowLeft') goTo(cur - 1);
+}});
+// GSAP entrance animation on scene change
+const observer = new MutationObserver(() => {{
+  const active = document.querySelector('.scene.active');
+  if (active) gsap.from(active.children, {{y: 30, opacity: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out'}});
+}});
+scenes.forEach(s => observer.observe(s, {{attributes: true, attributeFilter: ['class']}}));
+</script>
+</body></html>
+```
+
+RULES:
+- Images: use https://source.unsplash.com/1920x1080/?{keywords} (vary seed: &sig=1, &sig=2, etc.)
+- Do NOT use base64. Do NOT add extra scenes. Do NOT remove the counter or JS.
+- Replace CHOSEN_FONT with plan.typography font name.
+- Output ONLY the filled HTML. No markdown fences. Last line must be </html>."""
