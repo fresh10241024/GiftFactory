@@ -9,7 +9,7 @@ from app.config import settings
 from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-client = Anthropic(api_key=settings.anthropic_api_key)
+client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url)
 
 
 class ChatRequest(BaseModel):
