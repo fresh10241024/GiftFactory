@@ -298,6 +298,12 @@ export class ChatInteraction {
                 }, 300);
             }
 
+            if (res && res.ready) {
+                setTimeout(() => {
+                    window.location.href = './analysis.html';
+                }, 1200);
+            }
+
         } catch (error) {
             console.error("API Error", error);
             this.input.disabled = false;

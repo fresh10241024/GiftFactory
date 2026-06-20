@@ -227,7 +227,8 @@ async def create_plan(session_id: str, background_tasks: BackgroundTasks, author
     session = result.data[0]
     _check_session_access(session, _get_user_id(authorization))
     state = session.get("style_summary") or {}
-    if not state.get("recipient_name"):
+    has_content = any(v for k, v in state.items() if k not in ("mood",) and v and v is not False)
+    if not has_content:
         return {"status": "not_ready", "detail": "Please complete the chat first"}
 
     # Already cached — return immediately
