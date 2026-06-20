@@ -14,7 +14,26 @@ async function fetchApi(endpoint, options = {}) {
 }
 
 export async function createSession() {
-    return fetchApi('/sessions', { method: 'POST' });
+    const token = localStorage.getItem('token');
+    return fetchApi('/sessions', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+}
+
+export async function getMySessions() {
+    const token = localStorage.getItem('token');
+    return fetchApi('/sessions/my', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+export async function deleteSession(sessionId) {
+    const token = localStorage.getItem('token');
+    return fetchApi(`/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+    });
 }
 
 export async function sendChatMessage(sessionId, message) {

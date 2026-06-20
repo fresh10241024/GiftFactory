@@ -4,7 +4,8 @@ import uuid
 import time
 import base64
 import traceback
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Header
+from typing import Optional
 from pydantic import BaseModel
 from anthropic import Anthropic
 from openai import OpenAI
@@ -40,15 +41,75 @@ def clean_reply(text: str) -> str:
     return text.strip()
 
 
+def _get_user_id(authorization: Optional[str]) -> Optional[str]:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        token = authorization.split(" ", 1)[1]
+        user = supabase.auth.get_user(token)
+        return str(user.user.id) if user.user else None
+    except Exception:
+        return None
+
+
+SESSION_LIMIT = 5
+
 @router.post("")
-async def create_session():
+async def create_session(authorization: Optional[str] = Header(None)):
     session_id = str(uuid.uuid4())
-    supabase.table("sessions").insert({
-        "id": session_id,
-        "status": "chatting",
-        "style_summary": {}
-    }).execute()
+    user_id = _get_user_id(authorization)
+    if user_id:
+        count = supabase.table("sessions").select("id", count="exact").eq("user_id", user_id).execute()
+        if (count.count or 0) >= SESSION_LIMIT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"最多同时保存 {SESSION_LIMIT} 个礼物，请先在「我的礼物」中删除一些再新建"
+            )
+    row = {"id": session_id, "status": "chatting", "style_summary": {}}
+    if user_id:
+        row["user_id"] = user_id
+    supabase.table("sessions").insert(row).execute()
     return {"session_id": session_id}
+
+
+@router.delete("/{session_id}")
+async def delete_session(session_id: str, authorization: Optional[str] = Header(None)):
+    user_id = _get_user_id(authorization)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="未登录")
+    result = supabase.table("sessions").select("user_id").eq("id", session_id).execute()
+    if not result.data or result.data[0].get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="无权删除")
+    supabase.table("gifts").delete().eq("session_id", session_id).execute()
+    supabase.table("messages").delete().eq("session_id", session_id).execute()
+    supabase.table("sessions").delete().eq("id", session_id).execute()
+    return {"message": "已删除"}
+
+
+@router.get("/my")
+async def my_sessions(authorization: Optional[str] = Header(None)):
+    user_id = _get_user_id(authorization)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="未登录")
+    rows = (
+        supabase.table("sessions")
+        .select("id, status, style_summary, created_at, updated_at")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .limit(20)
+        .execute()
+    )
+    sessions = []
+    for r in rows.data:
+        state = r.get("style_summary") or {}
+        sessions.append({
+            "id": r["id"],
+            "status": r["status"],
+            "recipient": state.get("recipient_name", ""),
+            "occasion": state.get("occasion", ""),
+            "created_at": r["created_at"],
+        })
+    return {"sessions": sessions}
 
 
 @router.post("/{session_id}/chat")

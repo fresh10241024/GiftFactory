@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Gifts — Gift Factory</title>
+    <link rel="stylesheet" href="./styles/base.css">
+    <style>
+        body { background: #0a0a0f; color: #fff; font-family: system-ui, sans-serif; min-height: 100vh; }
+
+        header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 24px 40px; border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        header a { color: #fff; text-decoration: none; opacity: 0.6; font-size: 0.9rem; }
+        header a:hover { opacity: 1; }
+
+        .page-title { font-size: 1.8rem; font-weight: 300; letter-spacing: -0.02em; margin: 0; }
+
+        main { max-width: 780px; margin: 0 auto; padding: 48px 24px; }
+
+        .new-btn {
+            display: inline-block; margin-bottom: 40px;
+            padding: 14px 32px; background: #fff; color: #0a0a0f;
+            border: none; border-radius: 100px; font-size: 0.95rem;
+            cursor: pointer; text-decoration: none; font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .new-btn:hover { opacity: 0.85; }
+
+        #session-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .session-card {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px 24px; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; background: rgba(255,255,255,0.03);
+            transition: background 0.2s;
+        }
+        .session-card:hover { background: rgba(255,255,255,0.06); }
+
+        .session-info { flex: 1; }
+        .session-recipient { font-size: 1.05rem; font-weight: 500; margin-bottom: 4px; }
+        .session-meta { font-size: 0.82rem; opacity: 0.45; }
+
+        .session-status {
+            font-size: 0.78rem; padding: 4px 10px; border-radius: 100px;
+            margin: 0 16px; white-space: nowrap;
+        }
+        .status-done { background: rgba(100,220,130,0.15); color: #64dc82; }
+        .status-chatting, .status-ready { background: rgba(160,160,255,0.15); color: #a0a0ff; }
+        .status-generating { background: rgba(255,200,80,0.15); color: #ffc850; }
+        .status-error { background: rgba(255,100,100,0.15); color: #ff6464; }
+
+        .session-actions { display: flex; gap: 8px; }
+        .btn-action {
+            padding: 8px 18px; border-radius: 100px; font-size: 0.82rem;
+            cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
+            background: transparent; color: #fff; text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-action:hover { background: rgba(255,255,255,0.1); }
+        .btn-action.primary { background: #fff; color: #0a0a0f; border-color: #fff; }
+        .btn-action.primary:hover { opacity: 0.85; }
+
+        #loading { text-align: center; padding: 80px 0; opacity: 0.4; }
+        #empty { text-align: center; padding: 80px 0; opacity: 0.4; display: none; }
+        #not-logged-in { text-align: center; padding: 80px 0; display: none; }
+        #not-logged-in p { opacity: 0.5; margin-bottom: 24px; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="./index.html">← Gift Factory</a>
+        <span id="user-email" style="font-size:0.85rem;opacity:0.4"></span>
+    </header>
+
+    <main>
+        <h1 class="page-title">我的礼物</h1>
+        <br>
+
+        <a href="./chat.html" class="new-btn" id="new-gift-btn" onclick="newGift()">+ 新建礼物</a>
+
+        <div id="not-logged-in">
+            <p>登录后查看你的礼物记录</p>
+            <a href="./index.html" class="btn-action primary">去登录</a>
+        </div>
+
+        <div id="loading">加载中...</div>
+        <div id="empty">还没有礼物，点击上方开始创建</div>
+        <div id="session-list"></div>
+    </main>
+
+    <script type="module">
+        import { getMySessions, deleteSession } from './scripts/api.js';
+
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+
+        function newGift(e) {
+            localStorage.removeItem('chat_session_id');
+        }
+        document.getElementById('new-gift-btn').addEventListener('click', newGift);
+
+        if (!token || !userId) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('not-logged-in').style.display = 'block';
+        } else {
+            loadSessions();
+        }
+
+        function statusLabel(s) {
+            const map = { done: '已完成', chatting: '对话中', ready: '待生成', generating: '生成中', error: '出错了' };
+            return map[s] || s;
+        }
+        function statusClass(s) {
+            return `session-status status-${s}`;
+        }
+        function formatDate(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return `${d.getMonth()+1}月${d.getDate()}日`;
+        }
+
+        window.handleDelete = async function(btn) {
+            const id = btn.dataset.id;
+            if (!confirm('确定删除这个礼物？')) return;
+            btn.disabled = true;
+            btn.textContent = '删除中...';
+            try {
+                await deleteSession(id);
+                btn.closest('.session-card').remove();
+                if (!document.querySelector('.session-card')) {
+                    document.getElementById('empty').style.display = 'block';
+                }
+            } catch (err) {
+                alert('删除失败：' + err.message);
+                btn.disabled = false;
+                btn.textContent = '删除';
+            }
+        };
+
+        async function loadSessions() {
+            try {
+                const data = await getMySessions();
+                document.getElementById('loading').style.display = 'none';
+                const list = data.sessions || [];
+                if (list.length === 0) {
+                    document.getElementById('empty').style.display = 'block';
+                    return;
+                }
+                const container = document.getElementById('session-list');
+                list.forEach(s => {
+                    const card = document.createElement('div');
+                    card.className = 'session-card';
+
+                    const recipient = s.recipient || '未命名礼物';
+                    const occasion = s.occasion ? ` · ${s.occasion}` : '';
+                    const date = formatDate(s.created_at);
+
+                    const actionBtn = s.status === 'done'
+                        ? `<a href="./gift.html?session=${s.id}" class="btn-action primary">查看礼物</a>`
+                        : `<a href="./chat.html?session=${s.id}" class="btn-action">继续</a>`;
+
+                    card.innerHTML = `
+                        <div class="session-info">
+                            <div class="session-recipient">送给 ${recipient}</div>
+                            <div class="session-meta">${date}${occasion}</div>
+                        </div>
+                        <span class="${statusClass(s.status)}">${statusLabel(s.status)}</span>
+                        <div class="session-actions">
+                            ${actionBtn}
+                            <button class="btn-action" data-id="${s.id}" onclick="handleDelete(this)">删除</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                document.getElementById('loading').textContent = '加载失败：' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
