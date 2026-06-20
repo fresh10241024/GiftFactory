@@ -35,6 +35,10 @@
         const urlSession = new URLSearchParams(window.location.search).get('session');
         if (urlSession) localStorage.setItem('chat_session_id', urlSession);
         const sessionId = localStorage.getItem('chat_session_id');
+        function authHeaders() {
+            const t = localStorage.getItem('token');
+            return t ? { Authorization: `Bearer ${t}` } : {};
+        }
 
         function showError(msg) {
             document.getElementById('loading').style.display = 'none';
@@ -63,7 +67,7 @@
             for (let i = 0; i < 80; i++) {
                 await new Promise(r => setTimeout(r, 3000));
                 try {
-                    const res = await fetch(BASE + '/sessions/' + sid + '/gift');
+                    const res = await fetch(BASE + '/sessions/' + sid + '/gift', { headers: authHeaders() });
                     if (!res.ok) { errCount++; if (errCount >= 3) { clearInterval(timer); showError('Server error ' + res.status); return; } continue; }
                     errCount = 0;
                     const data = await res.json();
@@ -81,13 +85,13 @@
             document.getElementById('status-text').textContent = 'Generating your gift website...';
             if (!sessionId) { showError('Session expired, please return and restart'); return; }
             try {
-                const check = await fetch(BASE + '/sessions/' + sessionId + '/gift');
+                const check = await fetch(BASE + '/sessions/' + sessionId + '/gift', { headers: authHeaders() });
                 const data = await check.json();
                 if (data.status === 'done') { showGift(data.slug); return; }
                 if (data.status === 'generating') { poll(sessionId); return; }
             } catch (e) {}
             try {
-                const res = await fetch(BASE + '/sessions/' + sessionId + '/generate', { method: 'POST' });
+                const res = await fetch(BASE + '/sessions/' + sessionId + '/generate', { method: 'POST', headers: authHeaders() });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 poll(sessionId);
             } catch (e) { showError('Failed to start generation: ' + e.message); }

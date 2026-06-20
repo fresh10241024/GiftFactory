@@ -52,6 +52,13 @@ def _get_user_id(authorization: Optional[str]) -> Optional[str]:
         return None
 
 
+def _check_session_access(session: dict, caller_user_id: Optional[str]):
+    """If the session has an owner, the caller must match. Anonymous sessions are open."""
+    owner = session.get("user_id")
+    if owner and owner != caller_user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
 SESSION_LIMIT = 5
 
 @router.post("")
@@ -115,12 +122,12 @@ async def my_sessions(authorization: Optional[str] = Header(None)):
 
 
 @router.post("/{session_id}/chat")
-async def chat(session_id: str, body: ChatRequest):
-    # Verify session exists
+async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] = Header(None)):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
+    _check_session_access(session, _get_user_id(authorization))
 
     # Pull history messages (last 10)
     history_result = supabase.table("messages") \
@@ -182,10 +189,11 @@ async def chat(session_id: str, body: ChatRequest):
 
 
 @router.post("/{session_id}/upload")
-async def upload_image(session_id: str, file: UploadFile = File(...)):
-    result = supabase.table("sessions").select("style_summary").eq("id", session_id).execute()
+async def upload_image(session_id: str, file: UploadFile = File(...), authorization: Optional[str] = Header(None)):
+    result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
+    _check_session_access(result.data[0], _get_user_id(authorization))
     state = result.data[0].get("style_summary") or {}
 
     image_data = await file.read()
@@ -214,11 +222,12 @@ async def upload_image(session_id: str, file: UploadFile = File(...)):
 
 
 @router.post("/{session_id}/plan")
-async def create_plan(session_id: str):
+async def create_plan(session_id: str, authorization: Optional[str] = Header(None)):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
+    _check_session_access(session, _get_user_id(authorization))
     if not session.get("style_summary"):
         raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
 
@@ -401,11 +410,12 @@ Output only the summary text, no HTML."""
 
 
 @router.post("/{session_id}/generate")
-async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
+async def generate_gift(session_id: str, background_tasks: BackgroundTasks, authorization: Optional[str] = Header(None)):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
+    _check_session_access(session, _get_user_id(authorization))
 
     if session.get("status") == "done":
         existing = supabase.table("gifts").select("slug") \
@@ -432,11 +442,12 @@ GENERATION_TIMEOUT = 180  # Seconds: generation fails if it takes more than 3 mi
 
 
 @router.get("/{session_id}/gift")
-async def get_gift_status(session_id: str):
-    result = supabase.table("sessions").select("status, updated_at, style_summary").eq("id", session_id).execute()
+async def get_gift_status(session_id: str, authorization: Optional[str] = Header(None)):
+    result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     row = result.data[0]
+    _check_session_access(row, _get_user_id(authorization))
     status = row["status"]
 
     if status == "generating":

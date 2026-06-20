@@ -36,9 +36,15 @@ export async function deleteSession(sessionId) {
     });
 }
 
+function authHeader() {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function sendChatMessage(sessionId, message) {
     return fetchApi(`/sessions/${sessionId}/chat`, {
         method: 'POST',
+        headers: authHeader(),
         body: JSON.stringify({ message }),
     });
 }
@@ -48,6 +54,7 @@ export async function uploadImage(sessionId, file) {
     formData.append('file', file);
     const response = await fetch(`${BASE_URL}/sessions/${sessionId}/upload`, {
         method: 'POST',
+        headers: authHeader(),
         body: formData,
     });
     if (!response.ok) {
@@ -58,13 +65,13 @@ export async function uploadImage(sessionId, file) {
 }
 
 export async function generateAnalysisPlan(sessionId) {
-    return fetchApi(`/sessions/${sessionId}/plan`, { method: 'POST' });
+    return fetchApi(`/sessions/${sessionId}/plan`, { method: 'POST', headers: authHeader() });
 }
 
 export async function startGeneratingGift(sessionId) {
-    return fetchApi(`/sessions/${sessionId}/generate`, { method: 'POST' });
+    return fetchApi(`/sessions/${sessionId}/generate`, { method: 'POST', headers: authHeader() });
 }
 
 export async function pollGiftStatus(sessionId) {
-    return fetchApi(`/sessions/${sessionId}/gift`);
+    return fetchApi(`/sessions/${sessionId}/gift`, { headers: authHeader() });
 }
