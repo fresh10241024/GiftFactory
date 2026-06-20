@@ -368,6 +368,27 @@ def _run_generation(session_id: str, state: dict, plan: dict):
     print(f"[generation] session={session_id} all attempts failed")
 
 
+@router.post("/{session_id}/summarize")
+async def summarize_session(session_id: str):
+    """调试用：同步返回 AI 对这个 session 的文字总结，不生成 HTML"""
+    result = supabase.table("sessions").select("*").eq("id", session_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    state = result.data[0].get("style_summary") or {}
+    plan = state.get("_plan", {})
+    prompt = f"""根据以下素材，用中文写一段100字以内的礼物总结，说明这个礼物网站会呈现什么内容和感觉：
+
+用户故事：{json.dumps(state, ensure_ascii=False)}
+剧本方案：{json.dumps(plan, ensure_ascii=False)}
+
+只输出总结文字，不要 HTML。"""
+    try:
+        raw = _call_claude(prompt)
+        return {"summary": raw, "has_plan": bool(plan), "recipient": state.get("recipient_name")}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.post("/{session_id}/generate")
 async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
