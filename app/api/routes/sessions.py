@@ -309,7 +309,7 @@ def _call_claude(prompt: str) -> str:
     if ds:
         r = ds.chat.completions.create(
             model="deepseek-chat",
-            max_tokens=6000,
+            max_tokens=4000,
             messages=[{"role": "user", "content": prompt}]
         )
         return r.choices[0].message.content
