@@ -26,21 +26,35 @@ export class ChatInteraction {
     }
 
     async initSession() {
-        // URL param takes priority (from dashboard)
+        // URL param takes priority (from dashboard "继续" link)
         const urlSession = new URLSearchParams(window.location.search).get('session');
         if (urlSession) {
             this.sessionId = urlSession;
             localStorage.setItem('chat_session_id', urlSession);
+        }
+
+        // Already have a session → keep using it
+        const existing = localStorage.getItem('chat_session_id');
+        if (existing) {
+            this.sessionId = existing;
+            if (localStorage.getItem('token')) {
+                try {
+                    const data = await getMySessions();
+                    this.allSessions = data.sessions || [];
+                    this.renderPanel();
+                } catch (_) {}
+            }
             return;
         }
 
+        // No session yet → decide whether to create new or load latest
         const token = localStorage.getItem('token');
         if (token) {
             try {
                 const data = await getMySessions();
                 this.allSessions = data.sessions || [];
                 if (this.allSessions.length >= 5) {
-                    // 已满：进入最近的 session
+                    // 已满：进入最近的
                     this.sessionId = this.allSessions[0].id;
                 } else {
                     // 未满：新建
@@ -56,9 +70,7 @@ export class ChatInteraction {
             }
         }
 
-        // 未登录：复用本地 session 或新建
-        const local = localStorage.getItem('chat_session_id');
-        if (local) { this.sessionId = local; return; }
+        // 未登录：新建 session
         try {
             const res = await createSession();
             this.sessionId = res.session_id;
