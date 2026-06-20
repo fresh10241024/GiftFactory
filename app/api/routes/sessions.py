@@ -375,7 +375,7 @@ def _call_claude(prompt: str) -> str:
         try:
             r = ds.chat.completions.create(
                 model="deepseek-chat",
-                max_tokens=4000,
+                max_tokens=8000,
                 messages=[{"role": "user", "content": prompt}]
             )
             return r.choices[0].message.content
@@ -383,7 +383,7 @@ def _call_claude(prompt: str) -> str:
             print(f"[deepseek] failed ({e}), falling back to Claude")
     response = client.messages.create(
         model="claude-haiku-4-5",
-        max_tokens=4000,
+        max_tokens=8000,
         messages=[{"role": "user", "content": prompt}]
     )
     return response.content[0].text
