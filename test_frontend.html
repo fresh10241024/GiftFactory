@@ -60,35 +60,35 @@ input::placeholder { color: rgba(255,255,255,.25); }
   <h1><span class="mood-dot" id="mood-dot"></span> GiftFactory</h1>
 
   <div class="card step active" id="step1">
-    <h2>开始</h2>
-    <button onclick="createSession()">创建礼物设计</button>
+    <h2>Start</h2>
+    <button onclick="createSession()">Create Gift Design</button>
     <div class="log" id="log1"></div>
   </div>
 
   <div class="card step" id="step2">
-    <h2>对话 · AI 正在感知你的礼物</h2>
+    <h2>Conversation · AI is sensing your gift</h2>
     <div class="messages" id="messages"></div>
-    <div id="ready-banner" class="ready-banner" style="display:none">✦ 信息收集完毕，可以生成礼物了</div>
+    <div id="ready-banner" class="ready-banner" style="display:none">✦ Information collected, gift can be generated</div>
     <div class="input-row">
-      <input type="text" id="msg-input" placeholder="告诉我关于这份礼物…" onkeydown="if(event.key==='Enter')sendMessage()" />
-      <button onclick="sendMessage()" id="send-btn">发送</button>
+      <input type="text" id="msg-input" placeholder="Tell me about this gift..." onkeydown="if(event.key==='Enter')sendMessage()" />
+      <button onclick="sendMessage()" id="send-btn">Send</button>
     </div>
     <div class="log" id="log2"></div>
   </div>
 
   <div class="card step" id="step3">
-    <h2>生成礼物网站</h2>
-    <p style="font-size:.82rem;color:rgba(255,255,255,.4);margin-bottom:14px;line-height:1.7">AI 将根据你的故事，生成一个独一无二的互动礼物网站。约 1-2 分钟。</p>
-    <button onclick="generateGift()" id="gen-btn">✦ 生成礼物</button>
+    <h2>Generate Gift Website</h2>
+    <p style="font-size:.82rem;color:rgba(255,255,255,.4);margin-bottom:14px;line-height:1.7">AI will generate a unique interactive gift website based on your story. Takes about 1-2 minutes.</p>
+    <button onclick="generateGift()" id="gen-btn">✦ Generate Gift</button>
     <div class="log" id="log3"></div>
   </div>
 
   <div class="card step" id="step4">
-    <h2>礼物预览</h2>
+    <h2>Gift Preview</h2>
     <div class="log" id="gift-slug" style="margin-bottom:12px;color:rgba(255,255,255,.4)"></div>
     <iframe class="gift-frame" id="gift-frame" src="about:blank"></iframe>
     <div style="margin-top:12px;display:flex;gap:8px">
-      <button onclick="openGift()">在新标签页打开</button>
+      <button onclick="openGift()">Open in New Tab</button>
     </div>
   </div>
 </div>
@@ -200,14 +200,14 @@ function showStep(n) {
 }
 
 async function createSession() {
-  log('log1', '创建中…')
+  log('log1', 'Creating...')
   try {
     const res = await fetch(`${BASE}/sessions`, { method: 'POST' })
     const data = await res.json()
     sessionId = data.session_id
     log('log1', `✓ ${sessionId}`)
     showStep(2)
-    appendMessage('assistant', '你好，我是你的礼物设计师 ✦ 你想为谁定制这份礼物呢？')
+    appendMessage('assistant', 'Hello, I am your gift designer ✦ Who do you want to customize this gift for?')
   } catch (e) { log('log1', `✗ ${e.message}`) }
 }
 
@@ -227,7 +227,7 @@ async function sendMessage() {
   input.value = ''
   appendMessage('user', text)
   document.getElementById('send-btn').disabled = true
-  log('log2', 'AI 感知中…')
+  log('log2', 'AI sensing...')
   try {
     const res = await fetch(`${BASE}/sessions/${sessionId}/chat`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -242,7 +242,7 @@ async function sendMessage() {
       document.getElementById('ready-banner').style.display = 'block'
       document.getElementById('msg-input').disabled = true
       document.getElementById('send-btn').disabled = true
-      document.getElementById('msg-input').placeholder = '信息已收集完毕，请点击生成按钮'
+      document.getElementById('msg-input').placeholder = 'Information collected, please click the generate button'
       showStep(3)
     }
   } catch (e) { log('log2', `✗ ${e.message}`) }
@@ -254,12 +254,12 @@ async function sendMessage() {
 
 async function generateGift() {
   document.getElementById('gen-btn').disabled = true
-  log('log3', '✦ 构思创意方案…')
+  log('log3', '✦ Conceiving creative plan...')
   try {
     const planRes = await fetch(`${BASE}/sessions/${sessionId}/plan`, { method: 'POST' })
     const planData = await planRes.json()
     if (!planRes.ok) { log('log3', `✗ ${JSON.stringify(planData)}`); document.getElementById('gen-btn').disabled = false; return }
-    log('log3', `灵感：${planData.plan.concept}`)
+    log('log3', `Inspiration: ${planData.plan.concept}`)
 
     await new Promise(r => setTimeout(r, 600))
     const res = await fetch(`${BASE}/sessions/${sessionId}/generate`, { method: 'POST' })
@@ -268,7 +268,7 @@ async function generateGift() {
     let dots = 0
     const poll = async () => {
       dots = (dots + 1) % 4
-      log('log3', `生成中${'·'.repeat(dots + 1)}（约 1-2 分钟）`)
+      log('log3', `Generating${'·'.repeat(dots + 1)} (about 1-2 minutes)`)
       const r = await fetch(`${BASE}/sessions/${sessionId}/gift`)
       const d = await r.json()
       if (d.status === 'done') {

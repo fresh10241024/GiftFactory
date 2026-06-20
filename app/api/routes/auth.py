@@ -29,7 +29,7 @@ async def send_otp(body: EmailRequest):
             "email": body.email,
             "options": {"email_redirect_to": redirect_url}
         })
-        return {"message": "登录链接已发送"}
+        return {"message": "Login link sent"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -42,7 +42,7 @@ async def login(body: PasswordLoginRequest):
             "password": body.password
         })
         if not res.session:
-            raise HTTPException(status_code=401, detail="邮箱或密码错误")
+            raise HTTPException(status_code=401, detail="Invalid email or password")
         return {
             "token": res.session.access_token,
             "refresh_token": res.session.refresh_token,
@@ -51,7 +51,7 @@ async def login(body: PasswordLoginRequest):
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=401, detail="邮箱或密码错误")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
 
 @router.post("/refresh")
@@ -59,7 +59,7 @@ async def refresh(body: RefreshRequest):
     try:
         res = supabase.auth.refresh_session(body.refresh_token)
         if not res.session:
-            raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
+            raise HTTPException(status_code=401, detail="Session expired, please log in again")
         return {
             "token": res.session.access_token,
             "refresh_token": res.session.refresh_token,
@@ -68,23 +68,23 @@ async def refresh(body: RefreshRequest):
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
+        raise HTTPException(status_code=401, detail="Session expired, please log in again")
 
 
 @router.post("/set-password")
 async def set_password(body: SetPasswordRequest, authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="未登录")
+        raise HTTPException(status_code=401, detail="Not logged in")
     token = authorization.split(" ", 1)[1]
     try:
         user_resp = supabase.auth.get_user(token)
         if not user_resp.user:
-            raise HTTPException(status_code=401, detail="Token 无效")
+            raise HTTPException(status_code=401, detail="Invalid token")
         supabase.auth.admin.update_user_by_id(
             user_resp.user.id,
             {"password": body.password}
         )
-        return {"message": "密码设置成功"}
+        return {"message": "Password set successfully"}
     except HTTPException:
         raise
     except Exception as e:
@@ -97,4 +97,4 @@ async def logout():
         supabase.auth.sign_out()
     except Exception:
         pass
-    return {"message": "已退出"}
+    return {"message": "Logged out"}

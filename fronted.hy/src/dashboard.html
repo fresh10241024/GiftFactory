@@ -76,18 +76,18 @@
     </header>
 
     <main>
-        <h1 class="page-title">我的礼物</h1>
+        <h1 class="page-title">My Gifts</h1>
         <br>
 
-        <a href="./chat.html" class="new-btn" id="new-gift-btn" onclick="newGift()">+ 新建礼物</a>
+        <a href="./chat.html" class="new-btn" id="new-gift-btn" onclick="newGift()">+ Create New Gift</a>
 
         <div id="not-logged-in">
-            <p>登录后查看你的礼物记录</p>
-            <a href="./index.html" class="btn-action primary">去登录</a>
+            <p>Log in to view your gift records</p>
+            <a href="./index.html" class="btn-action primary">Log in</a>
         </div>
 
-        <div id="loading">加载中...</div>
-        <div id="empty">还没有礼物，点击上方开始创建</div>
+        <div id="loading">Loading...</div>
+        <div id="empty">No gifts yet. Click above to start creating.</div>
         <div id="session-list"></div>
     </main>
 
@@ -110,7 +110,7 @@
         }
 
         function statusLabel(s) {
-            const map = { done: '已完成', chatting: '对话中', ready: '待生成', generating: '生成中', error: '出错了' };
+            const map = { done: 'Completed', chatting: 'Chatting', ready: 'Ready', generating: 'Generating', error: 'Error' };
             return map[s] || s;
         }
         function statusClass(s) {
@@ -119,14 +119,14 @@
         function formatDate(iso) {
             if (!iso) return '';
             const d = new Date(iso);
-            return `${d.getMonth()+1}月${d.getDate()}日`;
+            return `${d.toLocaleString('en-US', { month: 'short', day: 'numeric' })}`;
         }
 
         window.handleDelete = async function(btn) {
             const id = btn.dataset.id;
-            if (!confirm('确定删除这个礼物？')) return;
+            if (!confirm('Are you sure you want to delete this gift?')) return;
             btn.disabled = true;
-            btn.textContent = '删除中...';
+            btn.textContent = 'Deleting...';
             try {
                 await deleteSession(id);
                 btn.closest('.session-card').remove();
@@ -134,9 +134,9 @@
                     document.getElementById('empty').style.display = 'block';
                 }
             } catch (err) {
-                alert('删除失败：' + err.message);
+                alert('Delete failed: ' + err.message);
                 btn.disabled = false;
-                btn.textContent = '删除';
+                btn.textContent = 'Delete';
             }
         };
 
@@ -154,31 +154,31 @@
                     const card = document.createElement('div');
                     card.className = 'session-card';
 
-                    const recipient = s.recipient || '未命名礼物';
+                    const recipient = s.recipient || 'Unnamed Gift';
                     const occasion = s.occasion ? ` · ${s.occasion}` : '';
                     const date = formatDate(s.created_at);
 
                     const actionBtn = s.status === 'done'
-                        ? `<a href="./gift.html?session=${s.id}" class="btn-action primary" onclick="localStorage.setItem('chat_session_id','${s.id}')">查看礼物</a>`
-                        : `<a href="./chat.html?session=${s.id}" class="btn-action">继续</a>`;
+                        ? `<a href="./gift.html?session=${s.id}" class="btn-action primary" onclick="localStorage.setItem('chat_session_id','${s.id}')">View Gift</a>`
+                        : `<a href="./chat.html?session=${s.id}" class="btn-action">Continue</a>`;
 
                     const analysisTitle = s.analysis_title ? `<div class="session-analysis">${s.analysis_title}</div>` : '';
                     card.innerHTML = `
                         <div class="session-info">
-                            <div class="session-recipient">送给 ${recipient}</div>
+                            <div class="session-recipient">To ${recipient}</div>
                             ${analysisTitle}
                             <div class="session-meta">${date}${occasion}</div>
                         </div>
                         <span class="${statusClass(s.status)}">${statusLabel(s.status)}</span>
                         <div class="session-actions">
                             ${actionBtn}
-                            <button class="btn-action" data-id="${s.id}" onclick="handleDelete(this)">删除</button>
+                            <button class="btn-action" data-id="${s.id}" onclick="handleDelete(this)">Delete</button>
                         </div>
                     `;
                     container.appendChild(card);
                 });
             } catch (err) {
-                document.getElementById('loading').textContent = '加载失败：' + err.message;
+                document.getElementById('loading').textContent = 'Load failed: ' + err.message;
             }
         }
     </script>

@@ -63,7 +63,7 @@ async def create_session(authorization: Optional[str] = Header(None)):
         if (count.count or 0) >= SESSION_LIMIT:
             raise HTTPException(
                 status_code=400,
-                detail=f"最多同时保存 {SESSION_LIMIT} 个礼物，请先在「我的礼物」中删除一些再新建"
+                detail=f"Maximum {SESSION_LIMIT} gifts can be saved. Please delete some in 'My Gifts' before creating new ones."
             )
     row = {"id": session_id, "status": "chatting", "style_summary": {}}
     if user_id:
@@ -76,21 +76,21 @@ async def create_session(authorization: Optional[str] = Header(None)):
 async def delete_session(session_id: str, authorization: Optional[str] = Header(None)):
     user_id = _get_user_id(authorization)
     if not user_id:
-        raise HTTPException(status_code=401, detail="未登录")
+        raise HTTPException(status_code=401, detail="Not logged in")
     result = supabase.table("sessions").select("user_id").eq("id", session_id).execute()
     if not result.data or result.data[0].get("user_id") != user_id:
-        raise HTTPException(status_code=403, detail="无权删除")
+        raise HTTPException(status_code=403, detail="Forbidden")
     supabase.table("gifts").delete().eq("session_id", session_id).execute()
     supabase.table("messages").delete().eq("session_id", session_id).execute()
     supabase.table("sessions").delete().eq("id", session_id).execute()
-    return {"message": "已删除"}
+    return {"message": "Deleted"}
 
 
 @router.get("/my")
 async def my_sessions(authorization: Optional[str] = Header(None)):
     user_id = _get_user_id(authorization)
     if not user_id:
-        raise HTTPException(status_code=401, detail="未登录")
+        raise HTTPException(status_code=401, detail="Not logged in")
     rows = (
         supabase.table("sessions")
         .select("id, status, style_summary, created_at, updated_at")
@@ -116,13 +116,13 @@ async def my_sessions(authorization: Optional[str] = Header(None)):
 
 @router.post("/{session_id}/chat")
 async def chat(session_id: str, body: ChatRequest):
-    # 验证 session 存在
+    # Verify session exists
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
 
-    # 拉取历史消息（最近 10 条）
+    # Pull history messages (last 10)
     history_result = supabase.table("messages") \
         .select("role, content") \
         .eq("session_id", session_id) \
@@ -131,14 +131,14 @@ async def chat(session_id: str, body: ChatRequest):
         .execute()
     history = history_result.data or []
 
-    # 存用户消息
+    # Store user message
     supabase.table("messages").insert({
         "session_id": session_id,
         "role": "user",
         "content": body.message
     }).execute()
 
-    # 调用 Claude
+    # Call Claude
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     messages.append({"role": "user", "content": body.message})
 
@@ -153,19 +153,19 @@ async def chat(session_id: str, body: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI error: {str(e)}")
 
-    # 解析 state
+    # Parse state
     state = extract_state(raw_reply)
     reply = clean_reply(raw_reply)
     ready = state.get("ready", False) if state else False
 
-    # 更新 session state
+    # Update session state
     if state:
         supabase.table("sessions").update({
             "style_summary": state,
             "status": "ready" if ready else "chatting"
         }).eq("id", session_id).execute()
 
-    # 存 AI 消息
+    # Store AI message
     supabase.table("messages").insert({
         "session_id": session_id,
         "role": "assistant",
@@ -200,13 +200,13 @@ async def upload_image(session_id: str, file: UploadFile = File(...)):
                 "role": "user",
                 "content": [
                     {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {"type": "text", "text": "用一句话描述这张照片的色调、场景和氛围，20字以内，中文。"}
+                    {"type": "text", "text": "Describe the tone, scene and atmosphere of this photo in one sentence, within 20 words, in English."}
                 ]
             }]
         )
         description = resp.content[0].text.strip()
     except Exception:
-        description = f"一张{file.filename or '上传的照片'}"
+        description = f"A {file.filename or 'uploaded photo'}"
 
     updated_state = {**state, "photo_description": description}
     supabase.table("sessions").update({"style_summary": updated_state}).eq("id", session_id).execute()
@@ -243,7 +243,7 @@ async def create_plan(session_id: str):
             plan_text = r.content[0].text.strip()
         match = re.search(r"\{[\s\S]*\}", plan_text)
         raw = match.group(0) if match else plan_text
-        # 修补截断的 JSON：补全未闭合字符串和括号
+        # Patch truncated JSON: complete unclosed strings and braces
         open_braces = raw.count('{') - raw.count('}')
         open_brackets = raw.count('[') - raw.count(']')
         if not raw.rstrip().endswith(('"', '}', ']')):
@@ -253,7 +253,7 @@ async def create_plan(session_id: str):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Plan generation failed: {str(e)}")
 
-    # 构建 analysis 展示内容
+    # Build analysis display content
     scenes = plan.get("scenes", [])
     recipient = state.get("recipient_name", "Ta")
     s2 = next((s for s in scenes if s.get("act") == 2), scenes[1] if len(scenes) > 1 else {})
@@ -261,15 +261,15 @@ async def create_plan(session_id: str):
     style_name = plan.get("style_archetype", "").split(".")[-1].strip() if plan.get("style_archetype") else ""
 
     frontend_plan = {
-        "title1": s2.get("headline") or f"关于 {recipient}",
+        "title1": s2.get("headline") or f"About {recipient}",
         "text1": s2.get("body") or "",
-        "title2": s3.get("headline") or "那个时刻",
+        "title2": s3.get("headline") or "That Moment",
         "text2": s3.get("body") or "",
-        "title3": plan.get("concept") or "这份礼物",
-        "text3": plan.get("atmosphere") or f"这是一份{style_name}风格的礼物，为你们的故事而生。",
+        "title3": plan.get("concept") or "This Gift",
+        "text3": plan.get("atmosphere") or f"This is a {style_name} style gift, born for your story.",
     }
 
-    # 把 plan 和 analysis 结果都存进 session，方便后续展示
+    # Store plan and analysis results in session for later display
     supabase.table("sessions").update({
         "style_summary": {**state, "_plan": plan, "_analysis": frontend_plan},
         "status": "ready"
@@ -279,7 +279,7 @@ async def create_plan(session_id: str):
 
 
 def extract_html(text: str) -> str:
-    # 从 markdown 代码块提取
+    # Extract from markdown code block
     match = re.search(r"```(?:html)?\s*([\s\S]*?)```", text)
     html = match.group(1).strip() if match else None
 
@@ -297,7 +297,7 @@ def extract_html(text: str) -> str:
     if not html:
         raise HTTPException(status_code=502, detail=f"AI returned invalid HTML. Preview: {text[:300]}")
 
-    # 修补截断的 HTML
+    # Patch truncated HTML
     if not html.rstrip().endswith("</html>"):
         if "</body>" not in html:
             html += "\n</body>"
@@ -370,18 +370,18 @@ def _run_generation(session_id: str, state: dict, plan: dict):
 
 @router.post("/{session_id}/summarize")
 async def summarize_session(session_id: str):
-    """调试用：同步返回 AI 对这个 session 的文字总结，不生成 HTML"""
+    """Debug: synchronous return of AI text summary for this session, no HTML generation"""
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     state = result.data[0].get("style_summary") or {}
     plan = state.get("_plan", {})
-    prompt = f"""根据以下素材，用中文写一段100字以内的礼物总结，说明这个礼物网站会呈现什么内容和感觉：
+    prompt = f"""Based on the following materials, write a gift summary under 100 words in English, describing what content and feel this gift website will present:
 
-用户故事：{json.dumps(state, ensure_ascii=False)}
-剧本方案：{json.dumps(plan, ensure_ascii=False)}
+User Story: {json.dumps(state, ensure_ascii=False)}
+Script Plan: {json.dumps(plan, ensure_ascii=False)}
 
-只输出总结文字，不要 HTML。"""
+Output only the summary text, no HTML."""
     try:
         raw = _call_claude(prompt)
         return {"summary": raw, "has_plan": bool(plan), "recipient": state.get("recipient_name")}
@@ -420,7 +420,7 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     return {"status": "generating"}
 
 
-GENERATION_TIMEOUT = 180  # 秒：生成超过3分钟判定失败
+GENERATION_TIMEOUT = 180  # Seconds: generation fails if it takes more than 3 minutes
 
 
 @router.get("/{session_id}/gift")
@@ -442,7 +442,7 @@ async def get_gift_status(session_id: str):
                     "status": "error",
                     "style_summary": {**(row.get("style_summary") or {}), "_error": f"timeout after {int(elapsed)}s"}
                 }).eq("id", session_id).execute()
-                return {"status": "error", "error": f"生成超时（{int(elapsed)}秒），请重试"}
+                return {"status": "error", "error": f"Generation timed out ({int(elapsed)}s), please try again"}
         return {"status": "generating"}
 
     if status == "done":

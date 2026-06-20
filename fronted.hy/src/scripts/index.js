@@ -294,7 +294,7 @@ function formError(form, msg) {
 }
 function setBtnLoading(btn, loading, label) {
     btn.disabled = loading;
-    btn.textContent = loading ? '请稍候...' : label;
+    btn.textContent = loading ? 'Please wait...' : label;
 }
 
 document.getElementById('open-auth-modal')?.addEventListener('click', () => {
@@ -318,7 +318,7 @@ document.getElementById('auth-email-form')?.addEventListener('submit', async (e)
     const email = document.getElementById('auth-email').value.trim();
     const btn = form.querySelector('button[type="submit"]');
     formError(form, '');
-    setBtnLoading(btn, true, '发送验证码');
+    setBtnLoading(btn, true, 'Sending Code');
     try {
         const res = await fetch('/api/auth/send-otp', {
             method: 'POST',
@@ -326,14 +326,14 @@ document.getElementById('auth-email-form')?.addEventListener('submit', async (e)
             body: JSON.stringify({ email }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || '发送失败');
+        if (!res.ok) throw new Error(data.detail || 'Failed to send');
         _otpEmail = email;
         document.getElementById('auth-email-display').textContent = email;
         showStep('auth-step-code');
     } catch (err) {
         formError(form, err.message);
     } finally {
-        setBtnLoading(btn, false, '发送验证码');
+        setBtnLoading(btn, false, 'Send Code');
     }
 });
 
@@ -345,7 +345,7 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
     const password = document.getElementById('auth-pw-password').value;
     const btn = form.querySelector('button[type="submit"]');
     formError(form, '');
-    setBtnLoading(btn, true, '密码登录');
+    setBtnLoading(btn, true, 'Logging in');
     try {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
@@ -353,7 +353,7 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
             body: JSON.stringify({ email, password }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || '登录失败');
+        if (!res.ok) throw new Error(data.detail || 'Login failed');
         const payload = parseJwt(data.token);
         localStorage.setItem('token', data.token);
         localStorage.setItem('refresh_token', data.refresh_token || '');
@@ -363,7 +363,7 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
     } catch (err) {
         formError(form, err.message);
     } finally {
-        setBtnLoading(btn, false, '密码登录');
+        setBtnLoading(btn, false, 'Log in');
     }
 });
 
@@ -377,7 +377,7 @@ function parseJwt(token) {
     } catch { return {}; }
 }
 
-// Show "我的礼物" link if already logged in
+// Show "My Gifts" link if already logged in
 if (localStorage.getItem('token')) {
     document.getElementById('my-gifts-link')?.style.setProperty('display', 'inline');
 }
@@ -430,7 +430,7 @@ document.getElementById('auth-setpw-form')?.addEventListener('submit', async (e)
     const password = document.getElementById('auth-new-password').value;
     const btn = form.querySelector('button[type="submit"]');
     formError(form, '');
-    setBtnLoading(btn, true, '保存密码');
+    setBtnLoading(btn, true, 'Saving password');
     try {
         const token = localStorage.getItem('token');
         const res = await fetch('/api/auth/set-password', {
@@ -439,12 +439,12 @@ document.getElementById('auth-setpw-form')?.addEventListener('submit', async (e)
             body: JSON.stringify({ password }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || '设置失败');
+        if (!res.ok) throw new Error(data.detail || 'Failed to set password');
         closeModal(authModal);
     } catch (err) {
         formError(form, err.message);
     } finally {
-        setBtnLoading(btn, false, '保存密码');
+        setBtnLoading(btn, false, 'Save password');
     }
 });
 

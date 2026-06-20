@@ -26,7 +26,7 @@ export class ChatInteraction {
     }
 
     async initSession() {
-        // URL param takes priority (from dashboard "继续" link)
+        // URL param takes priority (from dashboard "Continue" link)
         const urlSession = new URLSearchParams(window.location.search).get('session');
         if (urlSession) {
             this.sessionId = urlSession;
@@ -54,10 +54,10 @@ export class ChatInteraction {
                 const data = await getMySessions();
                 this.allSessions = data.sessions || [];
                 if (this.allSessions.length >= 5) {
-                    // 已满：进入最近的
+                    // Full: enter the latest one
                     this.sessionId = this.allSessions[0].id;
                 } else {
-                    // 未满：新建
+                    // Not full: create new
                     const res = await createSession();
                     this.sessionId = res.session_id;
                     this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
@@ -67,18 +67,18 @@ export class ChatInteraction {
                 return;
             } catch (err) {
                 console.error("Session init failed:", err);
-                // 降级：直接新建
+                // Fallback: create new directly
             }
         }
 
-        // 未登录或降级：新建 session
+        // Not logged in or fallback: create session
         try {
             const res = await createSession();
             this.sessionId = res.session_id;
             localStorage.setItem('chat_session_id', this.sessionId);
         } catch (err) {
             console.error("Failed to create session:", err);
-            this.questionEl.textContent = '网络异常，请刷新页面重试';
+            this.questionEl.textContent = 'Network error, please refresh the page and try again.';
         }
     }
 
@@ -92,7 +92,7 @@ export class ChatInteraction {
         });
         document.getElementById('panel-new-btn')?.addEventListener('click', async () => {
             if (this.allSessions.length >= 5) {
-                alert('已达到5个礼物上限，请先删除一个');
+                alert('Reached the limit of 5 gifts, please delete one first.');
                 return;
             }
             try {
@@ -104,7 +104,7 @@ export class ChatInteraction {
                 document.getElementById('session-panel').style.display = 'none';
                 this.renderPanel();
             } catch (err) {
-                alert('新建失败：' + err.message);
+                alert('Creation failed: ' + err.message);
             }
         });
     }
@@ -117,7 +117,7 @@ export class ChatInteraction {
             const btn = document.createElement('button');
             const isActive = s.id === this.sessionId;
             btn.style.cssText = `width:100%;padding:12px;text-align:left;background:${isActive ? 'rgba(255,255,255,0.12)' : 'transparent'};border:1px solid ${isActive ? 'rgba(255,255,255,0.2)' : 'transparent'};color:#fff;border-radius:8px;cursor:pointer;font-size:0.85rem`;
-            btn.innerHTML = `<div style="font-weight:500">${s.recipient ? '送给 ' + s.recipient : '新礼物'}</div><div style="opacity:0.4;font-size:0.75rem;margin-top:2px">${s.status === 'done' ? '已完成' : '进行中'}</div>`;
+            btn.innerHTML = `<div style="font-weight:500">${s.recipient ? 'To ' + s.recipient : 'New Gift'}</div><div style="opacity:0.4;font-size:0.75rem;margin-top:2px">${s.status === 'done' ? 'Completed' : 'In Progress'}</div>`;
             btn.addEventListener('click', () => {
                 this.sessionId = s.id;
                 localStorage.setItem('chat_session_id', s.id);
@@ -127,7 +127,7 @@ export class ChatInteraction {
             });
             list.appendChild(btn);
         });
-        // 隐藏新建按钮若已满
+        // Hide new button if full
         const newBtn = document.getElementById('panel-new-btn');
         if (newBtn) newBtn.style.display = this.allSessions.length >= 5 ? 'none' : 'block';
     }
@@ -203,12 +203,12 @@ export class ChatInteraction {
         try {
             await uploadImage(this.sessionId, file);
             
-            // 成功后恢复
+            // Restore after success
             this.uploadBtn.style.opacity = '1';
             this.uploadBtn.style.pointerEvents = 'auto';
             this.fileInput.value = ''; // Reset input
             
-            console.log("图片上传成功");
+            console.log("Image uploaded successfully");
 
         } catch (error) {
             console.error("Upload failed:", error.message);
@@ -216,7 +216,7 @@ export class ChatInteraction {
             this.uploadBtn.style.pointerEvents = 'auto';
             this.fileInput.value = '';
             card.remove();
-            alert(`图片上传失败：${error.message}`);
+            alert(`Image upload failed: ${error.message}`);
         }
     }
 

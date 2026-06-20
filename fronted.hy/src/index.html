@@ -20,7 +20,7 @@
     <div class="frame__infos">
     </div>
     <div class="frame__auth-buttons">
-      <a href="./dashboard.html" id="my-gifts-link" style="display:none;color:inherit;text-decoration:none;opacity:0.7;font-size:0.9rem;margin-right:20px">我的礼物</a>
+      <a href="./dashboard.html" id="my-gifts-link" style="display:none;color:inherit;text-decoration:none;opacity:0.7;font-size:0.9rem;margin-right:20px">My Gifts</a>
       <button class="button--login" id="open-auth-modal">Log in / Sign up</button>
     </div>
   </header>
@@ -29,7 +29,7 @@
       <figure class="media">
         <img class="media__image" src="../8.webp" alt="Image 8" />
         <figcaption class="media__caption">Personal Website Gift Made for Someone Special
-为特别之人专属定制的网站礼物.</figcaption>
+A custom website gift for someone special.</figcaption>
       </figure>
     </section>
     <section class="block block--main">
@@ -92,19 +92,19 @@
 
       <!-- Step 1: email -->
       <div id="auth-step-email">
-        <h2 id="auth-title">登录 / 注册</h2>
-        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 16px">输入邮箱，发送验证码</p>
+        <h2 id="auth-title">Log in / Sign up</h2>
+        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 16px">Enter email to receive code</p>
         <form id="auth-email-form">
           <input type="email" id="auth-email" placeholder="your@email.com" required autocomplete="email">
-          <button type="submit">发送验证码</button>
+          <button type="submit">Send Code</button>
           <p class="form-error"></p>
         </form>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
-          <p style="font-size:0.85rem;opacity:0.5;margin:0 0 10px">已有密码？直接登录</p>
+          <p style="font-size:0.85rem;opacity:0.5;margin:0 0 10px">Have a password? Log in directly</p>
           <form id="auth-password-form">
-            <input type="email" id="auth-pw-email" placeholder="邮箱" required autocomplete="email">
-            <input type="password" id="auth-pw-password" placeholder="密码" required autocomplete="current-password">
-            <button type="submit">密码登录</button>
+            <input type="email" id="auth-pw-email" placeholder="Email" required autocomplete="email">
+            <input type="password" id="auth-pw-password" placeholder="Password" required autocomplete="current-password">
+            <button type="submit">Log in</button>
             <p class="form-error"></p>
           </form>
         </div>
@@ -112,23 +112,23 @@
 
       <!-- Step 2: link sent -->
       <div id="auth-step-code" style="display:none">
-        <h2>检查邮件</h2>
-        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 8px">登录链接已发送到</p>
+        <h2>Check your email</h2>
+        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 8px">Login link sent to</p>
         <p style="font-weight:600;margin:0 0 20px"><span id="auth-email-display"></span></p>
-        <p style="font-size:0.85rem;opacity:0.5;line-height:1.6">点击邮件里的链接，会自动跳回这里完成登录。<br>没收到？检查一下垃圾邮件。</p>
-        <button id="auth-back-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:20px;font-size:0.85rem;color:inherit">← 重新输入邮箱</button>
+        <p style="font-size:0.85rem;opacity:0.5;line-height:1.6">Click the link in the email to log in automatically.<br>Didn't receive it? Check your spam folder.</p>
+        <button id="auth-back-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:20px;font-size:0.85rem;color:inherit">← Use different email</button>
       </div>
 
       <!-- Step 3: optional set password -->
       <div id="auth-step-setpw" style="display:none">
-        <h2>设置密码（可选）</h2>
-        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 20px">下次可以直接用邮箱+密码登录，不用再等验证码</p>
+        <h2>Set Password (Optional)</h2>
+        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 20px">You can use Email+Password to log in directly next time without waiting for a code</p>
         <form id="auth-setpw-form">
-          <input type="password" id="auth-new-password" placeholder="设置密码（至少6位）" minlength="6" autocomplete="new-password">
-          <button type="submit">保存密码</button>
+          <input type="password" id="auth-new-password" placeholder="Set password (min 6 chars)" minlength="6" autocomplete="new-password">
+          <button type="submit">Save password</button>
           <p class="form-error"></p>
         </form>
-        <button id="auth-skip-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">跳过，以后再说</button>
+        <button id="auth-skip-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">Skip, maybe later</button>
       </div>
     </div>
   </div>
