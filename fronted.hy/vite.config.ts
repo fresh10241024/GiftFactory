@@ -25,6 +25,7 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'src/index.html'),
                 chat: resolve(__dirname, 'src/chat.html'),
+                analysis: resolve(__dirname, 'src/analysis.html'),
                 gift: resolve(__dirname, 'src/gift.html'),
             },
         },
