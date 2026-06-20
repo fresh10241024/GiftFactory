@@ -70,13 +70,16 @@ async def chat(session_id: str, body: ChatRequest):
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     messages.append({"role": "user", "content": body.message})
 
-    response = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=1024,
-        system=CONVERSATION_SYSTEM,
-        messages=messages
-    )
-    raw_reply = response.content[0].text
+    try:
+        response = client.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=1024,
+            system=CONVERSATION_SYSTEM,
+            messages=messages
+        )
+        raw_reply = response.content[0].text
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI error: {str(e)}")
 
     # 解析 state
     state = extract_state(raw_reply)
