@@ -18,7 +18,7 @@ client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthrop
 
 def _make_deepseek():
     if settings.deepseek_api_key:
-        return OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=300.0)
+        return OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=60.0)
     return None
 
 
