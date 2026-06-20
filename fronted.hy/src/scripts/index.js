@@ -318,6 +318,99 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+// Auth helpers
+function showFormError(form, msg) {
+    let el = form.querySelector('.form-error');
+    if (!el) {
+        el = document.createElement('p');
+        el.className = 'form-error';
+        el.style.cssText = 'color:#ff6b6b;font-size:0.85rem;margin:8px 0 0';
+        form.appendChild(el);
+    }
+    el.textContent = msg;
+}
+
+function clearFormError(form) {
+    const el = form.querySelector('.form-error');
+    if (el) el.textContent = '';
+}
+
+// Login form
+const loginForm = loginModal?.querySelector('form');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearFormError(loginForm);
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        const btn = loginForm.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = '登录中...';
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || '登录失败');
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('userId', data.userId);
+            closeModal(loginModal);
+        } catch (err) {
+            showFormError(loginForm, err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Log In';
+        }
+    });
+}
+
+// Signup form
+const signupForm = signupModal?.querySelector('form');
+if (signupForm) {
+    signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearFormError(signupForm);
+        const email = document.getElementById('signup-email').value.trim();
+        const password = document.getElementById('signup-password').value;
+        const confirmPassword = document.getElementById('signup-confirm-password').value;
+        if (password !== confirmPassword) {
+            showFormError(signupForm, '两次密码不一致');
+            return;
+        }
+        const btn = signupForm.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = '注册中...';
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, confirmPassword }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || '注册失败');
+            // 注册成功后自动登录
+            const loginRes = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const loginData = await loginRes.json();
+            if (loginRes.ok) {
+                localStorage.setItem('token', loginData.token);
+                localStorage.setItem('userId', loginData.userId);
+            }
+            closeModal(signupModal);
+        } catch (err) {
+            showFormError(signupForm, err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Sign Up';
+        }
+    });
+}
+
 // Preload images then initialize everything
 preloadImages().then(() => {
     document.body.classList.remove("loading") // Remove loading state from body
