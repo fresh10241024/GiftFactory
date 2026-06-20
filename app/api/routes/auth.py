@@ -26,9 +26,14 @@ class SetPasswordRequest(BaseModel):
 
 @router.post("/send-otp")
 async def send_otp(body: EmailRequest):
+    from app.config import settings
+    redirect_url = settings.frontend_url or "https://gift-factory-1j7w.vercel.app"
     try:
-        supabase.auth.sign_in_with_otp({"email": body.email})
-        return {"message": "验证码已发送"}
+        supabase.auth.sign_in_with_otp({
+            "email": body.email,
+            "options": {"email_redirect_to": redirect_url}
+        })
+        return {"message": "登录链接已发送"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

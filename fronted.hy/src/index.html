@@ -109,16 +109,13 @@
         </div>
       </div>
 
-      <!-- Step 2: OTP code -->
+      <!-- Step 2: link sent -->
       <div id="auth-step-code" style="display:none">
-        <h2>输入验证码</h2>
-        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 20px">已发送到 <span id="auth-email-display"></span></p>
-        <form id="auth-code-form">
-          <input type="text" id="auth-code" placeholder="6位验证码" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-          <button type="submit">确认登录</button>
-          <p class="form-error"></p>
-        </form>
-        <button id="auth-back-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">← 重新输入邮箱</button>
+        <h2>检查邮件</h2>
+        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 8px">登录链接已发送到</p>
+        <p style="font-weight:600;margin:0 0 20px"><span id="auth-email-display"></span></p>
+        <p style="font-size:0.85rem;opacity:0.5;line-height:1.6">点击邮件里的链接，会自动跳回这里完成登录。<br>没收到？检查一下垃圾邮件。</p>
+        <button id="auth-back-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:20px;font-size:0.85rem;color:inherit">← 重新输入邮箱</button>
       </div>
 
       <!-- Step 3: optional set password -->

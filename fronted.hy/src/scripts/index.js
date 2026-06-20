@@ -364,33 +364,27 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
     }
 });
 
-// Step 2: verify OTP
-document.getElementById('auth-code-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const code = document.getElementById('auth-code').value.trim();
-    const btn = form.querySelector('button[type="submit"]');
-    formError(form, '');
-    setBtnLoading(btn, true, '确认登录');
-    try {
-        const res = await fetch('/api/auth/verify-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: _otpEmail, code }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || '验证失败');
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data.userId);
-        showStep('auth-step-setpw');
-    } catch (err) {
-        formError(form, err.message);
-    } finally {
-        setBtnLoading(btn, false, '确认登录');
-    }
-});
-
 document.getElementById('auth-back-btn')?.addEventListener('click', () => showStep('auth-step-email'));
+
+// Handle magic link redirect: Supabase appends #access_token=... to the URL
+function parseJwt(token) {
+    try {
+        const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(base64));
+    } catch { return {}; }
+}
+
+const hashParams = new URLSearchParams(window.location.hash.substring(1));
+const magicToken = hashParams.get('access_token');
+if (magicToken) {
+    const payload = parseJwt(magicToken);
+    localStorage.setItem('token', magicToken);
+    localStorage.setItem('userId', payload.sub || '');
+    // Clean URL and show set-password prompt
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showStep('auth-step-setpw');
+    openModal(authModal);
+}
 
 // Step 3: set password (optional)
 document.getElementById('auth-setpw-form')?.addEventListener('submit', async (e) => {
