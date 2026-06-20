@@ -134,7 +134,7 @@ async def create_plan(session_id: str):
         if ds:
             r = ds.chat.completions.create(
                 model="deepseek-chat",
-                max_tokens=1500,
+                max_tokens=3000,
                 messages=[{"role": "user", "content": prompt}]
             )
             plan_text = r.choices[0].message.content.strip()

@@ -87,17 +87,63 @@ J. soft_minimal
    动效轻柔(opacity+transform)、内容精炼、设计感在细节
    适合：简约人格、高级低调、日常感谢
 
+K. knit_textile
+   针织毛线质感：SVG交叉针脚纹理做背景、羊毛色调(#F5E6D3/#D4956A/#8B4513/#C4A882)
+   字体粗圆，像毛线绕成的字；边框用虚线模拟针脚(border:3px dashed)
+   元素有"手工缝制"感：略微不规则、轻微旋转、温暖阴影(box-shadow带暖色)
+   SVG毛线球/针织花样作装饰；背景可用repeating-linear-gradient模拟织物纹路
+   适合：温馨、家庭、老人、冬天、妈妈/奶奶、手工爱好者
+
+【你的核心任务：写出真正打动人的五幕内容】
+在选好风格之后，为每一幕写真实的、有温度的文字——不是关键词，是真正会出现在网站上的句子。
+想象你在写一封只给这一个人的信，每个细节都来自他们的故事。
+
 输出 JSON，不要其他内容：
 {{
   "concept": "一句诗意核心创意",
   "style_archetype": "选上面字母+名称，如 C. glassmorphism_dark",
-  "why_this_style": "为什么这个故事适合这种风格",
-  "visual_dna": "3个最关键的CSS视觉特征",
   "color_palette": ["主色hex", "辅色hex", "背景色hex", "强调色hex"],
-  "typography": "具体字体名+字重+特殊处理",
-  "atmosphere": "整体情感氛围",
+  "typography": "Google Fonts字体名+字重，如 Noto Serif SC:wght@300",
   "unsplash_keywords": "英文关键词逗号分隔",
-  "special_effect": "最想要的一个特效"
+  "scenes": [
+    {{
+      "act": 1,
+      "role": "开场——第一眼就被抓住",
+      "headline": "震撼的大标题，5字以内，是整个故事的灵魂词",
+      "sub": "一句副标题，点明是给谁的",
+      "body": "不超过30字的引子，制造悬念或情绪",
+      "visual": "这一幕的画面感描述：全屏图/光晕/颜色氛围"
+    }},
+    {{
+      "act": 2,
+      "role": "关于你——描绘这个人",
+      "headline": "主标题",
+      "body": "60-80字，用具体细节描述这个人，让收件人一眼认出自己。用'你'来称呼。",
+      "visual": "配图方向"
+    }},
+    {{
+      "act": 3,
+      "role": "我们的故事——一个共同记忆",
+      "headline": "主标题",
+      "body": "80-100字，讲一个具体的共同时刻或记忆，有场景、有细节、有感受。",
+      "visual": "配图方向"
+    }},
+    {{
+      "act": 4,
+      "role": "情感高潮——说出最想说的话",
+      "headline": "最有力量的一句话，可以是承诺/告白/感谢",
+      "body": "60-80字，说出平时说不出口的话，真诚、直接、有温度。",
+      "visual": "深色/强烈氛围"
+    }},
+    {{
+      "act": 5,
+      "role": "落幕——留下的东西",
+      "headline": "结尾标题",
+      "body": "40-60字，像信的结尾，有落款感。",
+      "sign": "落款，如'爱你的 XXX'",
+      "visual": "轻柔收尾氛围"
+    }}
+  ]
 }}"""
 
 
@@ -129,7 +175,12 @@ GENERATE_WEBSITE_PROMPT = """你是世界顶级的独立网页设计师，每个
 
 ━━━━━━━━ 创作素材 ━━━━━━━━
 用户故事：{state}
-创意方案：{plan}
+创意方案（含五幕完整文案）：{plan}
+
+【最重要的规则】
+plan.scenes 里已经写好了每一幕的 headline/body/sub/sign——
+你必须把这些文字原封不动用进去，这是礼物的灵魂，不能替换成通用占位文字。
+你的工作是：让这些文字在对应风格里呈现得最美。
 
 ━━━━━━━━ 风格执行原则 ━━━━━━━━
 方案中的 style_archetype 决定了这个网站的一切——字体、颜色运用方式、排版逻辑、留白哲学、动效节奏。
@@ -146,11 +197,20 @@ GENERATE_WEBSITE_PROMPT = """你是世界顶级的独立网页设计师，每个
 - typographic_max: 字号从0.7rem到12vw混排; 文字position:absolute叠压; mix-blend-mode:multiply或difference
 - scrapbook_collage: transform:rotate(±5deg); border:2px solid; box-shadow; 背景有纸张纹理; 元素intentionally不对齐
 - soft_minimal: background:#f5f5f7; font-family:-apple-system; border-radius:18px; box-shadow:0 4px 20px rgba(0,0,0,0.08); 极度留白
+- knit_textile: background用SVG针织纹理+repeating-linear-gradient(45deg,rgba(0,0,0,0.03) 0,transparent 2px); border:3px dashed #C4A882; 羊毛暖色; 装饰用SVG毛线球图案; 文字font-weight:700圆润
 
 ━━━━━━━━ 结构要求 ━━━━━━━━
 - 5幕点击翻页，点击任意处进入下一幕，最后一幕有"重看"按钮
 - 进度：右下角"01/05"风格计数，字体和风格匹配
 - 幕间过渡：根据风格选择（电影风用渐黑，故障风用glitch，梦幻风用模糊扩散）
+
+━━━━━━━━ 布局纪律（防止"乱"）━━━━━━━━
+- 每幕只有一个视觉焦点，其他元素辅助它，不要抢镜
+- 文字和图片不要同时占满屏幕，留出至少 30% 的呼吸空间
+- 每幕的主文字不超过 3 行，副文字不超过 5 行
+- 装饰元素（SVG/粒子/纹理）用 opacity≤0.15，绝对不能盖住文字
+- position:absolute 的元素最多 3 个，避免叠压混乱
+- 每幕背景只用一种处理方式（纯色/渐变/图片三选一），不要叠加
 
 ━━━━━━━━ 可用效果 ━━━━━━━━
 {skills}
