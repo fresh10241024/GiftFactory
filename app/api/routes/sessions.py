@@ -139,19 +139,29 @@ async def create_plan(session_id: str):
 def extract_html(text: str) -> str:
     # 从 markdown 代码块提取
     match = re.search(r"```(?:html)?\s*([\s\S]*?)```", text)
-    if match:
-        return match.group(1).strip()
-    # 直接是 HTML
-    stripped = text.strip()
-    if stripped.startswith("<!DOCTYPE") or stripped.startswith("<html"):
-        return stripped
-    # 找文本中任意位置的 HTML 起点
-    idx = text.find("<!DOCTYPE")
-    if idx == -1:
-        idx = text.find("<html")
-    if idx != -1:
-        return text[idx:].strip()
-    raise HTTPException(status_code=502, detail=f"AI returned invalid HTML. Preview: {text[:300]}")
+    html = match.group(1).strip() if match else None
+
+    if not html:
+        stripped = text.strip()
+        if stripped.startswith("<!DOCTYPE") or stripped.startswith("<html"):
+            html = stripped
+        else:
+            idx = text.find("<!DOCTYPE")
+            if idx == -1:
+                idx = text.find("<html")
+            if idx != -1:
+                html = text[idx:].strip()
+
+    if not html:
+        raise HTTPException(status_code=502, detail=f"AI returned invalid HTML. Preview: {text[:300]}")
+
+    # 修补截断的 HTML
+    if not html.rstrip().endswith("</html>"):
+        if "</body>" not in html:
+            html += "\n</body>"
+        html += "\n</html>"
+
+    return html
 
 
 @router.post("/{session_id}/generate")
