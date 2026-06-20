@@ -104,12 +104,37 @@ async def chat(session_id: str, body: ChatRequest):
     }
 
 
+def extract_json(text: str) -> dict:
+    # 先尝试直接解析
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+    # 再尝试从 markdown 代码块里提取
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
+    if match:
+        try:
+            return json.loads(match.group(1).strip())
+        except Exception:
+            pass
+    raise HTTPException(status_code=502, detail="AI returned invalid JSON, please retry")
+
+
 @router.post("/{session_id}/generate")
 async def generate_gift(session_id: str):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
+
+    if session.get("status") == "done":
+        existing = supabase.table("gifts").select("slug, config") \
+            .eq("session_id", session_id).order("created_at", desc=True).limit(1).execute()
+        if existing.data:
+            return {"slug": existing.data[0]["slug"], "config": existing.data[0]["config"]}
+
+    if not session.get("style_summary"):
+        raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
 
     state = session.get("style_summary", {})
     prompt = GENERATE_CONFIG_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
@@ -120,10 +145,8 @@ async def generate_gift(session_id: str):
         messages=[{"role": "user", "content": prompt}]
     )
 
-    config_text = response.content[0].text.strip()
-    config = json.loads(config_text)
+    config = extract_json(response.content[0].text.strip())
 
-    # 生成唯一 slug
     slug = str(uuid.uuid4())[:8]
 
     supabase.table("gifts").insert({
