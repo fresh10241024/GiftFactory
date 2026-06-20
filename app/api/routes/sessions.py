@@ -108,14 +108,21 @@ async def chat(session_id: str, body: ChatRequest):
 
 
 def extract_html(text: str) -> str:
-    # 去掉 markdown 代码块包裹
+    # 从 markdown 代码块提取
     match = re.search(r"```(?:html)?\s*([\s\S]*?)```", text)
     if match:
         return match.group(1).strip()
-    # 如果直接是 HTML
-    if text.strip().startswith("<!DOCTYPE") or text.strip().startswith("<html"):
-        return text.strip()
-    raise HTTPException(status_code=502, detail="AI returned invalid HTML, please retry")
+    # 直接是 HTML
+    stripped = text.strip()
+    if stripped.startswith("<!DOCTYPE") or stripped.startswith("<html"):
+        return stripped
+    # 找文本中任意位置的 HTML 起点
+    idx = text.find("<!DOCTYPE")
+    if idx == -1:
+        idx = text.find("<html")
+    if idx != -1:
+        return text[idx:].strip()
+    raise HTTPException(status_code=502, detail=f"AI returned invalid HTML. Preview: {text[:300]}")
 
 
 @router.post("/{session_id}/generate")
