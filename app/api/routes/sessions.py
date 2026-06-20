@@ -9,7 +9,7 @@ from app.config import settings
 from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=120.0)
+client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=180.0)
 
 
 class ChatRequest(BaseModel):
@@ -189,7 +189,7 @@ async def generate_gift(session_id: str):
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=6000,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}]
     )
 
