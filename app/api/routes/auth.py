@@ -24,9 +24,30 @@ def _session_response(res):
 
 @router.post("/signin")
 async def signin(body: AuthRequest):
-    """Try login first; if user not found, auto-register then login."""
+    """Try register first; if email already exists, fall back to login."""
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    # Attempt registration
+    try:
+        reg = supabase.auth.admin.create_user({
+            "email": body.email,
+            "password": body.password,
+            "email_confirm": True
+        })
+        if reg.user:
+            res = supabase.auth.sign_in_with_password({
+                "email": body.email,
+                "password": body.password
+            })
+            return {**_session_response(res), "action": "register"}
+    except Exception as e:
+        msg = str(e).lower()
+        # Email already exists → fall through to login
+        if "already registered" not in msg and "already been registered" not in msg and "user already registered" not in msg:
+            raise HTTPException(status_code=400, detail="Could not create account, please try again")
+
+    # Email exists → try login
     try:
         res = supabase.auth.sign_in_with_password({
             "email": body.email,
@@ -34,29 +55,11 @@ async def signin(body: AuthRequest):
         })
         if res.session:
             return {**_session_response(res), "action": "login"}
-    except Exception as e:
-        msg = str(e).lower()
-        # Wrong password for existing user
-        if "invalid login" in msg or "invalid credentials" in msg:
-            raise HTTPException(status_code=401, detail="Incorrect password")
-        # User not found → register
-    try:
-        reg = supabase.auth.admin.create_user({
-            "email": body.email,
-            "password": body.password,
-            "email_confirm": True
-        })
-        if not reg.user:
-            raise HTTPException(status_code=400, detail="Could not create account")
-        res = supabase.auth.sign_in_with_password({
-            "email": body.email,
-            "password": body.password
-        })
-        return {**_session_response(res), "action": "register"}
+        raise HTTPException(status_code=401, detail="Incorrect password")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="Sign in failed, please try again")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Incorrect password")
 
 
 @router.post("/refresh")
