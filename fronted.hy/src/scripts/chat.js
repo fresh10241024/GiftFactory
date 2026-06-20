@@ -1,4 +1,4 @@
-import { sendChatMessage, uploadImage, createSession } from './api.js';
+import { sendChatMessage, uploadImage, createSession, getMySessions } from './api.js';
 
 export class ChatInteraction {
     constructor() {
@@ -17,30 +17,105 @@ export class ChatInteraction {
         // Finish Button
         this.finishBtn = document.getElementById('finish-chat-button');
         
-        // Session — URL param takes priority (from dashboard "继续" link)
-        const urlSession = new URLSearchParams(window.location.search).get('session');
-        if (urlSession) {
-            localStorage.setItem('chat_session_id', urlSession);
-        }
-        this.sessionId = localStorage.getItem('chat_session_id');
+        this.sessionId = null;
+        this.allSessions = [];
 
         this.initSession();
         this.initEvents();
+        this.initPanel();
     }
 
     async initSession() {
-        if (!this.sessionId) {
+        // URL param takes priority (from dashboard)
+        const urlSession = new URLSearchParams(window.location.search).get('session');
+        if (urlSession) {
+            this.sessionId = urlSession;
+            localStorage.setItem('chat_session_id', urlSession);
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (token) {
             try {
-                const res = await createSession();
-                if (res && res.session_id) {
+                const data = await getMySessions();
+                this.allSessions = data.sessions || [];
+                if (this.allSessions.length >= 5) {
+                    // 已满：进入最近的 session
+                    this.sessionId = this.allSessions[0].id;
+                } else {
+                    // 未满：新建
+                    const res = await createSession();
                     this.sessionId = res.session_id;
-                    localStorage.setItem('chat_session_id', this.sessionId);
+                    this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
                 }
+                localStorage.setItem('chat_session_id', this.sessionId);
+                this.renderPanel();
+                return;
             } catch (err) {
-                console.error("Failed to create session:", err);
-                this.sessionId = 'temp_session_id';
+                console.error("Session init failed:", err);
             }
         }
+
+        // 未登录：复用本地 session 或新建
+        const local = localStorage.getItem('chat_session_id');
+        if (local) { this.sessionId = local; return; }
+        try {
+            const res = await createSession();
+            this.sessionId = res.session_id;
+            localStorage.setItem('chat_session_id', this.sessionId);
+        } catch (err) {
+            console.error("Failed to create session:", err);
+        }
+    }
+
+    initPanel() {
+        document.getElementById('curate-btn')?.addEventListener('click', () => {
+            document.getElementById('session-panel').style.display = 'block';
+            this.renderPanel();
+        });
+        document.getElementById('close-panel')?.addEventListener('click', () => {
+            document.getElementById('session-panel').style.display = 'none';
+        });
+        document.getElementById('panel-new-btn')?.addEventListener('click', async () => {
+            if (this.allSessions.length >= 5) {
+                alert('已达到5个礼物上限，请先删除一个');
+                return;
+            }
+            try {
+                const res = await createSession();
+                this.sessionId = res.session_id;
+                localStorage.setItem('chat_session_id', this.sessionId);
+                this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
+                this.questionEl.textContent = 'Who do you want to customize this gift for?';
+                document.getElementById('session-panel').style.display = 'none';
+                this.renderPanel();
+            } catch (err) {
+                alert('新建失败：' + err.message);
+            }
+        });
+    }
+
+    renderPanel() {
+        const list = document.getElementById('panel-session-list');
+        if (!list) return;
+        list.innerHTML = '';
+        this.allSessions.forEach(s => {
+            const btn = document.createElement('button');
+            const isActive = s.id === this.sessionId;
+            btn.style.cssText = `width:100%;padding:12px;text-align:left;background:${isActive ? 'rgba(255,255,255,0.12)' : 'transparent'};border:1px solid ${isActive ? 'rgba(255,255,255,0.2)' : 'transparent'};color:#fff;border-radius:8px;cursor:pointer;font-size:0.85rem`;
+            btn.innerHTML = `<div style="font-weight:500">${s.recipient ? '送给 ' + s.recipient : '新礼物'}</div><div style="opacity:0.4;font-size:0.75rem;margin-top:2px">${s.status === 'done' ? '已完成' : '进行中'}</div>`;
+            btn.addEventListener('click', () => {
+                this.sessionId = s.id;
+                localStorage.setItem('chat_session_id', s.id);
+                this.questionEl.textContent = '...';
+                document.getElementById('session-panel').style.display = 'none';
+                this.renderPanel();
+            });
+            list.appendChild(btn);
+        });
+        // 隐藏新建按钮若已满
+        const newBtn = document.getElementById('panel-new-btn');
+        if (newBtn) newBtn.style.display = this.allSessions.length >= 5 ? 'none' : 'block';
     }
 
     initEvents() {

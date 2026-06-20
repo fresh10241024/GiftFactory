@@ -8,9 +8,19 @@
     <link rel="stylesheet" href="./styles/chat.css">
 </head>
 <body class="chat-page">
+    <!-- Session switcher panel -->
+    <div id="session-panel" style="display:none;position:fixed;top:0;left:0;width:300px;height:100vh;background:#111;border-right:1px solid rgba(255,255,255,0.08);z-index:100;padding:24px;box-sizing:border-box;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+            <span style="font-size:0.9rem;opacity:0.5">我的礼物</span>
+            <button id="close-panel" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;opacity:0.5">✕</button>
+        </div>
+        <div id="panel-session-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button id="panel-new-btn" style="margin-top:16px;width:100%;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:8px;cursor:pointer;font-size:0.85rem">+ 新建礼物</button>
+    </div>
+
     <header class="chat-header">
         <div class="header-left">
-            <span>Curate a gift</span>
+            <span id="curate-btn" style="cursor:pointer">Curate a gift</span>
         </div>
         <div class="header-right">
             <div class="artwork-info">
