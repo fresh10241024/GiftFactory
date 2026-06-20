@@ -134,14 +134,14 @@ async def create_plan(session_id: str):
         if ds:
             r = ds.chat.completions.create(
                 model="deepseek-chat",
-                max_tokens=600,
+                max_tokens=1500,
                 messages=[{"role": "user", "content": prompt}]
             )
             plan_text = r.choices[0].message.content.strip()
         else:
             r = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=600,
+                max_tokens=1500,
                 messages=[{"role": "user", "content": prompt}]
             )
             plan_text = r.content[0].text.strip()
@@ -207,10 +207,10 @@ def _call_claude(prompt: str) -> str:
 
 
 def _run_generation(session_id: str, state: dict, plan: dict):
-    keywords = ",".join(filter(None, [
-        plan.get("visual", ""), state.get("shared_elements", {}).get("place", ""),
+    keywords = plan.get("unsplash_keywords") or ",".join(filter(None, [
+        state.get("shared_elements", {}).get("place", ""),
         state.get("atmosphere", "")
-    ]))[:60] or "nature,beautiful"
+    ])) or "nature,beautiful"
     prompt = GENERATE_WEBSITE_PROMPT.format(
         state=json.dumps(state, ensure_ascii=False),
         plan=json.dumps(plan, ensure_ascii=False),
