@@ -233,25 +233,49 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     state = dict(session.get("style_summary", {}))
     plan = state.pop("_plan", {})
 
-    supabase.table("sessions").update({"status": "generating"}).eq("id", session_id).execute()
+    supabase.table("sessions").update({
+        "status": "generating",
+        "updated_at": "now()"
+    }).eq("id", session_id).execute()
     background_tasks.add_task(_run_generation, session_id, state, plan)
     return {"status": "generating"}
 
 
+GENERATION_TIMEOUT = 240  # 秒，超过视为卡死
+
+
 @router.get("/{session_id}/gift")
 async def get_gift_status(session_id: str):
-    result = supabase.table("sessions").select("status").eq("id", session_id).execute()
+    result = supabase.table("sessions").select("status, updated_at, style_summary").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
-    status = result.data[0]["status"]
+    row = result.data[0]
+    status = row["status"]
+
+    if status == "generating":
+        updated_at = row.get("updated_at")
+        if updated_at:
+            from datetime import datetime, timezone
+            started = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+            elapsed = (datetime.now(timezone.utc) - started).total_seconds()
+            if elapsed > GENERATION_TIMEOUT:
+                supabase.table("sessions").update({
+                    "status": "error",
+                    "style_summary": {**(row.get("style_summary") or {}), "_error": f"timeout after {int(elapsed)}s"}
+                }).eq("id", session_id).execute()
+                return {"status": "error", "error": f"生成超时（{int(elapsed)}秒），请重试"}
+        return {"status": "generating"}
+
     if status == "done":
         existing = supabase.table("gifts").select("slug") \
             .eq("session_id", session_id).order("created_at", desc=True).limit(1).execute()
         if existing.data:
             return {"status": "done", "slug": existing.data[0]["slug"]}
+
     if status == "error":
-        err = result.data[0].get("style_summary", {}).get("_error", "unknown") if result.data else "unknown"
+        err = (row.get("style_summary") or {}).get("_error", "unknown")
         return {"status": "error", "error": err}
+
     return {"status": "generating"}
 
 
