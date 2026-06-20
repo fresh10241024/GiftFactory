@@ -123,52 +123,22 @@ J. knit_textile
    Best for: Cozy / Handmade / Family / Grandma.
 
 Output JSON, no other content:
-{
+{{
   "style_archetype": "Choose a letter + name",
   "style_reason": "One sentence on which material led to this style",
   "color_palette": ["Primary hex", "Secondary hex", "Background hex", "Accent hex"],
   "typography": "Google Font name + weights",
   "unsplash_keywords": "English keywords based on scene description",
+  "concept": "One sentence gift concept",
+  "atmosphere": "One sentence atmosphere description",
   "scenes": [
-    {
-      "act": 1,
-      "role": "Opening",
-      "headline": "Under 5 words, the soul of the story",
-      "sub": "Subtitle, indicating who it's for",
-      "body": "Under 20 words intro",
-      "visual": "Visual description"
-    },
-    {
-      "act": 2,
-      "role": "About You",
-      "headline": "Main Title",
-      "body": "60-80 words, describe the recipient using collected details, address them as 'You', be specific",
-      "visual": "Image direction"
-    },
-    {
-      "act": 3,
-      "role": "That Moment",
-      "headline": "Main Title",
-      "body": "80-100 words, recreate the specific scene the user described, add sensory details",
-      "visual": "Scene image"
-    },
-    {
-      "act": 4,
-      "role": "Message",
-      "headline": "The user's own words, verbatim",
-      "body": "60 words, expand around this sentence, do not rewrite the original words",
-      "visual": "Strong atmosphere"
-    },
-    {
-      "act": 5,
-      "role": "Closing",
-      "headline": "Ending",
-      "body": "30-40 words wrap-up",
-      "sign": "Sign-off",
-      "visual": "Soft"
-    }
+    {{"act": 1, "role": "Opening", "headline": "Under 5 words", "sub": "Who it's for", "body": "Under 20 words intro", "visual": "Visual description"}},
+    {{"act": 2, "role": "About You", "headline": "Main Title", "body": "60-80 words about the recipient, use 'You', be specific", "visual": "Image direction"}},
+    {{"act": 3, "role": "That Moment", "headline": "Main Title", "body": "80-100 words recreating the specific scene with sensory details", "visual": "Scene image"}},
+    {{"act": 4, "role": "Message", "headline": "User's own words verbatim", "body": "60 words expanding around their sentence", "visual": "Strong atmosphere"}},
+    {{"act": 5, "role": "Closing", "headline": "Ending", "body": "30-40 words wrap-up", "sign": "Sign-off", "visual": "Soft"}}
   ]
-}"""
+}}"""
 
 
 DESIGN_SKILLS = """
