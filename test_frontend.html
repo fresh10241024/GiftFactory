@@ -153,9 +153,23 @@ async function sendMessage() {
 
 async function generateGift() {
   document.getElementById('gen-btn').disabled = true
-  log('log3', '⏳ AI 正在创作你的专属网站，请稍等（约 15 秒）...')
 
   try {
+    // 第一步：生成创意方案
+    log('log3', '✨ 第一步：AI 正在构思创意方案...')
+    const planRes = await fetch(`${BASE}/sessions/${sessionId}/plan`, { method: 'POST' })
+    const planData = await planRes.json()
+    if (!planRes.ok) {
+      log('log3', `❌ 方案生成失败：${JSON.stringify(planData)}`)
+      document.getElementById('gen-btn').disabled = false
+      return
+    }
+    const p = planData.plan
+    log('log3', `💡 方案：${p.concept} | ${p.technique}`)
+
+    // 第二步：生成 HTML
+    await new Promise(r => setTimeout(r, 800))
+    log('log3', '🎨 第二步：正在生成你的专属网站（约 30-60 秒）...')
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 180000)
     const res = await fetch(`${BASE}/sessions/${sessionId}/generate`, { method: 'POST', signal: controller.signal })

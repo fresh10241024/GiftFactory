@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from anthropic import Anthropic
 from app.db import supabase
 from app.config import settings
-from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT
+from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=120.0)
@@ -107,6 +107,35 @@ async def chat(session_id: str, body: ChatRequest):
     }
 
 
+@router.post("/{session_id}/plan")
+async def create_plan(session_id: str):
+    result = supabase.table("sessions").select("*").eq("id", session_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session = result.data[0]
+    if not session.get("style_summary"):
+        raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
+
+    state = session.get("style_summary", {})
+    prompt = PLAN_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
+
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        plan_text = response.content[0].text.strip()
+        # 提取 JSON
+        match = re.search(r"\{[\s\S]*\}", plan_text)
+        plan = json.loads(match.group(0)) if match else json.loads(plan_text)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Plan generation failed: {str(e)}")
+
+    supabase.table("sessions").update({"style_summary": {**state, "_plan": plan}}).eq("id", session_id).execute()
+    return {"plan": plan}
+
+
 def extract_html(text: str) -> str:
     # 从 markdown 代码块提取
     match = re.search(r"```(?:html)?\s*([\s\S]*?)```", text)
@@ -142,7 +171,11 @@ async def generate_gift(session_id: str):
         raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
 
     state = session.get("style_summary", {})
-    prompt = GENERATE_WEBSITE_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
+    plan = state.pop("_plan", {})
+    prompt = GENERATE_WEBSITE_PROMPT.format(
+        state=json.dumps(state, ensure_ascii=False),
+        plan=json.dumps(plan, ensure_ascii=False)
+    )
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
