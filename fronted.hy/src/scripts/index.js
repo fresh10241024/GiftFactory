@@ -332,6 +332,12 @@ function saveAuth(data, email) {
     localStorage.setItem('userEmail', email);
     closeModal(authModal);
     updateAuthUI();
+    
+    if (localStorage.getItem('redirect_to_chat_after_login') === 'true') {
+        localStorage.removeItem('redirect_to_chat_after_login');
+        localStorage.removeItem('chat_session_id');
+        window.location.href = './chat.html';
+    }
 }
 
 document.getElementById('auth-login-form')?.addEventListener('submit', async (e) => {
@@ -430,6 +436,23 @@ async function ensureValidToken() {
 }
 
 ensureValidToken();
+
+// Try for Free redirect logic
+const tryForFreeBtn = document.getElementById('try-for-free-btn');
+if (tryForFreeBtn) {
+    tryForFreeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            localStorage.removeItem('chat_session_id');
+            window.location.href = './chat.html';
+        } else {
+            localStorage.setItem('redirect_to_chat_after_login', 'true');
+            showStep('auth-step-email');
+            openModal(authModal);
+        }
+    });
+}
 
 
 // Preload images then initialize everything
