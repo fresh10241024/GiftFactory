@@ -285,8 +285,11 @@ function closeModal(modal) {
     modal.setAttribute('aria-hidden', 'true');
 }
 function showStep(step) {
-    ['auth-step-email', 'auth-step-code', 'auth-step-setpw'].forEach(id => {
-        document.getElementById(id).style.display = id === step ? '' : 'none';
+    const map = { 'auth-step-email': 'auth-step-main' };
+    const target = map[step] || step;
+    ['auth-step-main', 'auth-step-code', 'auth-step-setpw'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = id === target ? '' : 'none';
     });
 }
 function formError(form, msg) {
