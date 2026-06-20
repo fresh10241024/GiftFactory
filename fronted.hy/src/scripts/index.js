@@ -377,6 +377,11 @@ function parseJwt(token) {
     } catch { return {}; }
 }
 
+// Show "我的礼物" link if already logged in
+if (localStorage.getItem('token')) {
+    document.getElementById('my-gifts-link')?.style.setProperty('display', 'inline');
+}
+
 const hashParams = new URLSearchParams(window.location.hash.substring(1));
 const magicToken = hashParams.get('access_token');
 if (magicToken) {
