@@ -167,12 +167,12 @@ def extract_html(text: str) -> str:
 
 
 def _call_claude(prompt: str) -> str:
-    response = client.messages.create(
+    with client.messages.stream(
         model="claude-sonnet-4-6",
-        max_tokens=8000,
+        max_tokens=6000,
         messages=[{"role": "user", "content": prompt}]
-    )
-    return response.content[0].text
+    ) as stream:
+        return stream.get_final_text()
 
 
 def _run_generation(session_id: str, state: dict, plan: dict):
@@ -241,7 +241,7 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     return {"status": "generating"}
 
 
-GENERATION_TIMEOUT = 240  # 秒，超过视为卡死
+GENERATION_TIMEOUT = 360  # 秒，超过视为卡死
 
 
 @router.get("/{session_id}/gift")
