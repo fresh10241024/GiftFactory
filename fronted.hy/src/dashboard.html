@@ -96,6 +96,8 @@
 
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId');
+        const email = localStorage.getItem('userEmail') || '';
+        if (email) document.getElementById('user-email').textContent = email;
 
         function newGift(e) {
             localStorage.removeItem('chat_session_id');

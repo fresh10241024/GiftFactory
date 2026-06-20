@@ -240,7 +240,8 @@ async def create_plan(session_id: str, authorization: Optional[str] = Header(Non
     prompt = PLAN_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
 
     def _generate_plan(prompt):
-        ds = _make_deepseek()
+        # 20s timeout so Railway's 30s proxy limit isn't hit before fallback
+        ds = OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=20.0) if settings.deepseek_api_key else None
         if ds:
             try:
                 r = ds.chat.completions.create(
@@ -250,10 +251,10 @@ async def create_plan(session_id: str, authorization: Optional[str] = Header(Non
                 )
                 return r.choices[0].message.content.strip()
             except Exception as e:
-                print(f"[deepseek plan] failed ({e}), falling back to Claude")
+                print(f"[deepseek plan] failed ({e}), falling back to Claude Haiku")
         r = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1500,
+            model="claude-haiku-4-5",
+            max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )
         return r.content[0].text.strip()

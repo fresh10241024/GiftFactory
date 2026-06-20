@@ -359,7 +359,9 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
         localStorage.setItem('refresh_token', data.refresh_token || '');
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('token_exp', payload.exp || '');
+        localStorage.setItem('userEmail', email);
         closeModal(authModal);
+        updateAuthUI();
     } catch (err) {
         formError(form, err.message);
     } finally {
@@ -377,10 +379,17 @@ function parseJwt(token) {
     } catch { return {}; }
 }
 
-// Show "My Gifts" link if already logged in
-if (localStorage.getItem('token')) {
-    document.getElementById('my-gifts-link')?.style.setProperty('display', 'inline');
+function updateAuthUI() {
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('userEmail') || '';
+    const myGifts = document.getElementById('my-gifts-link');
+    const loginBtn = document.getElementById('open-auth-modal');
+    if (token) {
+        myGifts?.style.setProperty('display', 'inline');
+        if (loginBtn) loginBtn.textContent = email ? email.split('@')[0] : 'Account';
+    }
 }
+updateAuthUI();
 
 const hashParams = new URLSearchParams(window.location.hash.substring(1));
 const magicToken = hashParams.get('access_token');
@@ -390,6 +399,7 @@ if (magicToken) {
     localStorage.setItem('refresh_token', hashParams.get('refresh_token') || '');
     localStorage.setItem('userId', payload.sub || '');
     localStorage.setItem('token_exp', payload.exp || '');
+    if (payload.email) localStorage.setItem('userEmail', payload.email);
     window.history.replaceState({}, document.title, window.location.pathname);
     showStep('auth-step-setpw');
     openModal(authModal);
