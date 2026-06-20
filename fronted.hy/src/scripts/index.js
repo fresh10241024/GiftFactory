@@ -354,8 +354,11 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || '登录失败');
+        const payload = parseJwt(data.token);
         localStorage.setItem('token', data.token);
+        localStorage.setItem('refresh_token', data.refresh_token || '');
         localStorage.setItem('userId', data.userId);
+        localStorage.setItem('token_exp', payload.exp || '');
         closeModal(authModal);
     } catch (err) {
         formError(form, err.message);
@@ -379,12 +382,41 @@ const magicToken = hashParams.get('access_token');
 if (magicToken) {
     const payload = parseJwt(magicToken);
     localStorage.setItem('token', magicToken);
+    localStorage.setItem('refresh_token', hashParams.get('refresh_token') || '');
     localStorage.setItem('userId', payload.sub || '');
-    // Clean URL and show set-password prompt
+    localStorage.setItem('token_exp', payload.exp || '');
     window.history.replaceState({}, document.title, window.location.pathname);
     showStep('auth-step-setpw');
     openModal(authModal);
 }
+
+// Auto-refresh token if expired
+async function ensureValidToken() {
+    const exp = parseInt(localStorage.getItem('token_exp') || '0');
+    if (!exp || Date.now() / 1000 < exp - 60) return; // still valid
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) return;
+    try {
+        const res = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const payload = parseJwt(data.token);
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            localStorage.setItem('userId', data.userId);
+            localStorage.setItem('token_exp', payload.exp || '');
+        } else {
+            // Refresh failed, clear session
+            ['token', 'refresh_token', 'userId', 'token_exp'].forEach(k => localStorage.removeItem(k));
+        }
+    } catch {}
+}
+
+ensureValidToken();
 
 // Step 3: set password (optional)
 document.getElementById('auth-setpw-form')?.addEventListener('submit', async (e) => {

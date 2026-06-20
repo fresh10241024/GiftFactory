@@ -9,19 +9,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class EmailRequest(BaseModel):
     email: str
 
-
-class OTPVerifyRequest(BaseModel):
-    email: str
-    code: str
-
-
 class PasswordLoginRequest(BaseModel):
     email: str
     password: str
 
-
 class SetPasswordRequest(BaseModel):
     password: str
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 @router.post("/send-otp")
@@ -38,26 +34,6 @@ async def send_otp(body: EmailRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/verify-otp")
-async def verify_otp(body: OTPVerifyRequest):
-    try:
-        res = supabase.auth.verify_otp({
-            "email": body.email,
-            "token": body.code,
-            "type": "email"
-        })
-        if not res.session:
-            raise HTTPException(status_code=401, detail="验证码无效或已过期")
-        return {
-            "token": res.session.access_token,
-            "userId": res.user.id,
-        }
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="验证码无效或已过期")
-
-
 @router.post("/login")
 async def login(body: PasswordLoginRequest):
     try:
@@ -69,12 +45,30 @@ async def login(body: PasswordLoginRequest):
             raise HTTPException(status_code=401, detail="邮箱或密码错误")
         return {
             "token": res.session.access_token,
+            "refresh_token": res.session.refresh_token,
             "userId": res.user.id,
         }
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=401, detail="邮箱或密码错误")
+
+
+@router.post("/refresh")
+async def refresh(body: RefreshRequest):
+    try:
+        res = supabase.auth.refresh_session(body.refresh_token)
+        if not res.session:
+            raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
+        return {
+            "token": res.session.access_token,
+            "refresh_token": res.session.refresh_token,
+            "userId": res.user.id,
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
 
 
 @router.post("/set-password")
