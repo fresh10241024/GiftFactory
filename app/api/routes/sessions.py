@@ -6,12 +6,18 @@ import traceback
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from anthropic import Anthropic
+from openai import OpenAI
 from app.db import supabase
 from app.config import settings
 from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=300.0)
+
+def _make_deepseek():
+    if settings.deepseek_api_key:
+        return OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=300.0)
+    return None
 
 
 class ChatRequest(BaseModel):
@@ -167,6 +173,14 @@ def extract_html(text: str) -> str:
 
 
 def _call_claude(prompt: str) -> str:
+    ds = _make_deepseek()
+    if ds:
+        r = ds.chat.completions.create(
+            model="deepseek-chat",
+            max_tokens=6000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return r.choices[0].message.content
     response = client.messages.create(
         model="claude-haiku-4-5",
         max_tokens=3500,
