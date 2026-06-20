@@ -67,16 +67,18 @@ export class ChatInteraction {
                 return;
             } catch (err) {
                 console.error("Session init failed:", err);
+                // 降级：直接新建
             }
         }
 
-        // 未登录：新建 session
+        // 未登录或降级：新建 session
         try {
             const res = await createSession();
             this.sessionId = res.session_id;
             localStorage.setItem('chat_session_id', this.sessionId);
         } catch (err) {
             console.error("Failed to create session:", err);
+            this.questionEl.textContent = '网络异常，请刷新页面重试';
         }
     }
 

@@ -158,7 +158,7 @@
                     const date = formatDate(s.created_at);
 
                     const actionBtn = s.status === 'done'
-                        ? `<a href="./gift.html?session=${s.id}" class="btn-action primary">查看礼物</a>`
+                        ? `<a href="./gift.html?session=${s.id}" class="btn-action primary" onclick="localStorage.setItem('chat_session_id','${s.id}')">查看礼物</a>`
                         : `<a href="./chat.html?session=${s.id}" class="btn-action">继续</a>`;
 
                     card.innerHTML = `

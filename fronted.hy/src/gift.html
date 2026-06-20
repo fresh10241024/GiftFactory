@@ -32,6 +32,8 @@
     </div>
     <script type="module">
         const BASE = '/api';
+        const urlSession = new URLSearchParams(window.location.search).get('session');
+        if (urlSession) localStorage.setItem('chat_session_id', urlSession);
         const sessionId = localStorage.getItem('chat_session_id');
 
         function showError(msg) {
