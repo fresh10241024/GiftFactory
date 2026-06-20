@@ -168,8 +168,8 @@ def extract_html(text: str) -> str:
 
 def _call_claude(prompt: str) -> str:
     response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=3000,
+        model="claude-haiku-4-5",
+        max_tokens=3500,
         messages=[{"role": "user", "content": prompt}]
     )
     return response.content[0].text
