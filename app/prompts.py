@@ -117,42 +117,68 @@ J. spring_anim（弹性入场）
 """
 
 
-GENERATE_WEBSITE_PROMPT = """你是世界顶级的互动体验设计师。根据创意方案，生成一个让人惊叹的礼物网站。
+GENERATE_WEBSITE_PROMPT = """你是世界顶级的网页设计师，专门创作有真实布局感的互动礼物网站——不是幻灯片，是有排版、有层次、有图文构成的网页体验。
 
 用户信息：{state}
 创意方案：{plan}
 
-━━━━━━━━ 可用技术效果库 ━━━━━━━━
+━━━━━━━━ 技术效果库（选2-3种） ━━━━━━━━
 {skills}
 
-━━━━━━━━ 生成规则 ━━━━━━━━
-交互结构：
-- 5幕点击翻页：点击任意位置进入下一幕，最后一幕有"重新观看"按钮
-- 幕间过渡：opacity 淡入淡出 0.8s ease
-- 第1幕点击提示：右下角细线"点击继续 →"
+━━━━━━━━ 交互结构 ━━━━━━━━
+- 5幕，点击任意位置切换，最后一幕有"重新观看"按钮
+- 幕间：opacity 0→1，transition 0.9s ease
+- 右下角始终显示"幕次 / 5"进度
 
-效果选择（严格从方案的 technique 字段选，最多3种）：
-- 必选：kinetic_text（核心文字逐字出现）
-- 必选：ripple（点击涟漪反馈）
-- 选1个氛围效果：particle_system 或 mesh_gradient 或 light_bleed
-- 可选：noise_texture（任何主题都可加，opacity≤0.04）
+━━━━━━━━ 每幕布局规范（必须遵守，不得全居中） ━━━━━━━━
 
-图片：Unsplash https://source.unsplash.com/1920x1080/?{keywords}
-字体：Google Fonts Noto Serif SC
+第1幕 · 电影开场
+  布局：全屏 <img> 铺满（object-fit:cover），深色渐变遮罩叠加
+  左下角：大字号标题（font-size clamp(3rem,8vw,7rem)，字重200，letter-spacing 0.15em）逐字浮现
+  右下角：一行细字说明（font-size 0.8rem，opacity 0.5）
+  底部水平线：1px rgba(255,255,255,0.2) 从左延伸动画
 
-5幕内容：
-第1幕 · 开场 — 全屏Unsplash图+半透明遮罩+一句震撼的话，kinetic_text入场
-第2幕 · 关于你 — 介绍收礼人，2-3段逐字出现，换背景色调
-第3幕 · 我们的故事 — 最具体的那个回忆，换Unsplash图，tilt_3d卡片或分段出现
-第4幕 · 情感高潮 — 文字最少留白最大，光晕/粒子特效全开，让人想截图
-第5幕 · 落幕 — 署名祝愿+重播按钮，背景回到第1幕色调
+第2幕 · 左图右文 分栏布局
+  布局：display:grid，grid-template-columns: 1fr 1fr，高度100vh
+  左侧：<img> 铺满，轻微parallax（mouse移动时translateX ±15px）
+  右侧：深色背景，垂直居中，内容区padding 4rem
+    - 细小标签行（大写字母，letter-spacing 0.2em，opacity 0.4）
+    - 主标题（clamp(1.8rem,3.5vw,3rem)，字重300）逐字出现
+    - 正文2-3段（clamp(0.9rem,1.4vw,1.1rem)，line-height 2，opacity 0.75）
+    - 底部装饰线（60px宽，1px，主题色）
 
-设计规范：
-- 字体：标题 clamp(2.5rem,7vw,5.5rem) 字重300，正文 clamp(1rem,1.8vw,1.3rem)
-- 配色：严格用方案的 color_palette，背景深色，文字白/浅
-- 动效：慢而克制，主要 transition 0.8-1.5s，不堆砌
-- 代码：单文件HTML，CSS/JS内联，变量名简短，不写注释
+第3幕 · 叙事卡片 错位布局
+  布局：深色背景，内容区max-width 900px居中
+  上方：小标签 + 横线装饰
+  中间：一张 <img>（宽60%，右对齐，带圆角12px）叠在文字背景上，有box-shadow
+  文字块：向左偏移，与图片形成错位叠压感（负margin或absolute定位）
+  文字逐段出现（每次点击显示下一段）
 
-输出要求：
-- 只输出HTML，不要解释和markdown代码块
-- 代码完整，最后一行必须是 </html>"""
+第4幕 · 情感高潮 沉浸布局
+  布局：全屏深色，无图片，纯氛围
+  中央：1-2句核心文字，字号极大（clamp(2rem,6vw,5rem)），字重100，极宽letter-spacing
+  Canvas粒子或light_bleed光晕全开
+  文字周围有若隐若现的装饰元素（细圆圈、散点、几何线条）
+  鼠标移动带动光晕位置（parallax light effect）
+
+第5幕 · 落幕 编辑排版风格
+  布局：浅色或深色背景，内容左对齐，像一封信的排版
+  顶部：小字"写于 [地点或日期]"
+  主体：竖排或横排的祝愿语，字重300，行距2.2
+  落款：送礼人署名，偏右下，用斜体
+  底部：两个按钮横排——"重新观看" 和 "分享给TA"（分享按钮可用navigator.share或复制链接）
+
+━━━━━━━━ 设计规范 ━━━━━━━━
+- 配色严格用 plan.color_palette，深背景为主，文字白/浅色
+- 图片全用 <img src="https://source.unsplash.com/1920x1080/?{keywords}" loading="lazy">
+- 必加：noise_texture（body::after，opacity 0.025）
+- 必加：ripple点击涟漪
+- kinetic_text 用于第1幕标题和第4幕核心句
+- 字体引入 Noto Serif SC（Google Fonts），全站使用
+- 所有动画 transition ≥ 0.6s，不要急促
+
+━━━━━━━━ 代码规范 ━━━━━━━━
+- 单文件HTML，CSS/JS全内联
+- 变量名简短，不写注释
+- 最后一行必须是 </html>
+- 只输出HTML，不要解释"""
