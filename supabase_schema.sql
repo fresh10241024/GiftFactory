@@ -16,12 +16,12 @@ CREATE TABLE messages (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- gifts 表：生成的礼物网站配置
+-- gifts 表：生成的礼物网站（完整 HTML）
 CREATE TABLE gifts (
   id UUID PRIMARY KEY,
   session_id UUID REFERENCES sessions(id),
   slug TEXT UNIQUE NOT NULL,   -- 短码，如 "a3f9b2c1"
-  config JSONB NOT NULL,       -- 网站渲染所需全部配置
+  html TEXT NOT NULL,          -- AI 生成的完整 HTML 文件内容
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

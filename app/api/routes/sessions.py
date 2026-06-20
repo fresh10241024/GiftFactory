@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from anthropic import Anthropic
 from app.db import supabase
 from app.config import settings
-from app.prompts import CONVERSATION_SYSTEM, GENERATE_CONFIG_PROMPT
+from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 client = Anthropic(api_key=settings.anthropic_api_key)
@@ -104,20 +104,15 @@ async def chat(session_id: str, body: ChatRequest):
     }
 
 
-def extract_json(text: str) -> dict:
-    # 先尝试直接解析
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
-    # 再尝试从 markdown 代码块里提取
-    match = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
+def extract_html(text: str) -> str:
+    # 去掉 markdown 代码块包裹
+    match = re.search(r"```(?:html)?\s*([\s\S]*?)```", text)
     if match:
-        try:
-            return json.loads(match.group(1).strip())
-        except Exception:
-            pass
-    raise HTTPException(status_code=502, detail="AI returned invalid JSON, please retry")
+        return match.group(1).strip()
+    # 如果直接是 HTML
+    if text.strip().startswith("<!DOCTYPE") or text.strip().startswith("<html"):
+        return text.strip()
+    raise HTTPException(status_code=502, detail="AI returned invalid HTML, please retry")
 
 
 @router.post("/{session_id}/generate")
@@ -128,37 +123,36 @@ async def generate_gift(session_id: str):
     session = result.data[0]
 
     if session.get("status") == "done":
-        existing = supabase.table("gifts").select("slug, config") \
+        existing = supabase.table("gifts").select("slug, html") \
             .eq("session_id", session_id).order("created_at", desc=True).limit(1).execute()
         if existing.data:
-            return {"slug": existing.data[0]["slug"], "config": existing.data[0]["config"]}
+            return {"slug": existing.data[0]["slug"]}
 
     if not session.get("style_summary"):
         raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
 
     state = session.get("style_summary", {})
-    prompt = GENERATE_CONFIG_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
+    prompt = GENERATE_WEBSITE_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1024,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}]
     )
 
-    config = extract_json(response.content[0].text.strip())
-
+    html = extract_html(response.content[0].text)
     slug = str(uuid.uuid4())[:8]
 
     supabase.table("gifts").insert({
         "id": str(uuid.uuid4()),
         "session_id": session_id,
         "slug": slug,
-        "config": config
+        "html": html
     }).execute()
 
     supabase.table("sessions").update({"status": "done"}).eq("id", session_id).execute()
 
-    return {"slug": slug, "config": config}
+    return {"slug": slug}
 
 
 @router.get("/{session_id}/messages")
