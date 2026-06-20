@@ -1,0 +1,37 @@
+{
+  "hash": "91c6181e",
+  "configHash": "6cfcce9d",
+  "lockfileHash": "9e8ec625",
+  "browserHash": "4d146243",
+  "optimized": {
+    "gsap": {
+      "src": "../../node_modules/gsap/index.js",
+      "file": "gsap.js",
+      "fileHash": "aab27416",
+      "needsInterop": false
+    },
+    "gsap/ScrollTrigger": {
+      "src": "../../node_modules/gsap/ScrollTrigger.js",
+      "file": "gsap_ScrollTrigger.js",
+      "fileHash": "62c8fa82",
+      "needsInterop": false
+    },
+    "imagesloaded": {
+      "src": "../../node_modules/imagesloaded/imagesloaded.js",
+      "file": "imagesloaded.js",
+      "fileHash": "d5cc9c27",
+      "needsInterop": true
+    },
+    "lenis": {
+      "src": "../../node_modules/lenis/dist/lenis.mjs",
+      "file": "lenis.js",
+      "fileHash": "5c9a0d04",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-JVWSFFO4": {
+      "file": "chunk-JVWSFFO4.js"
+    }
+  }
+}

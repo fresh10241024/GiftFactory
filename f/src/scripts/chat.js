@@ -1,3 +1,5 @@
+import { sendChatMessage, uploadImage, createSession } from './api.js';
+
 export class ChatInteraction {
     constructor() {
         this.answerBtn = document.getElementById('answer-button');
@@ -12,8 +14,27 @@ export class ChatInteraction {
         
         // Finish Button
         this.finishBtn = document.getElementById('finish-chat-button');
+        
+        // Session
+        this.sessionId = localStorage.getItem('chat_session_id');
 
+        this.initSession();
         this.initEvents();
+    }
+
+    async initSession() {
+        if (!this.sessionId) {
+            try {
+                const res = await createSession();
+                if (res && res.session_id) {
+                    this.sessionId = res.session_id;
+                    localStorage.setItem('chat_session_id', this.sessionId);
+                }
+            } catch (err) {
+                console.error("Failed to create session:", err);
+                this.sessionId = 'temp_session_id';
+            }
+        }
     }
 
     initEvents() {
@@ -65,15 +86,13 @@ export class ChatInteraction {
         this.uploadBtn.style.pointerEvents = 'none';
         
         try {
-            // ⭐ 预留的图片上传后端接口调用位置 ⭐
-            await this.mockUploadApiCall(file);
+            await uploadImage(this.sessionId, file);
             
             // 成功后恢复
             this.uploadBtn.style.opacity = '1';
             this.uploadBtn.style.pointerEvents = 'auto';
             this.fileInput.value = ''; // Reset input
             
-            // 可选：上传完成后也可以切换问题或给出提示
             console.log("图片上传成功");
 
         } catch (error) {
@@ -82,16 +101,6 @@ export class ChatInteraction {
             this.uploadBtn.style.pointerEvents = 'auto';
             this.fileInput.value = '';
         }
-    }
-
-    mockUploadApiCall(file) {
-        return new Promise((resolve) => {
-            // 模拟 1秒 的上传网络请求
-            setTimeout(() => {
-                console.log("前端向后端上传了图片:", file.name, file.type, file.size);
-                resolve({ success: true, url: "/mock-url/" + file.name });
-            }, 1000);
-        });
     }
 
     activateInput() {
@@ -147,36 +156,28 @@ export class ChatInteraction {
         this.input.disabled = true;
         this.answerBtn.style.opacity = '0.7';
 
-        // Mock API Call
         try {
-            await this.mockApiCall(answer);
+            const res = await sendChatMessage(this.sessionId, answer);
             
             // Move to next step or clear
             this.input.disabled = false;
             this.answerBtn.style.opacity = '1';
             this.deactivateInput();
             
-            // Example of changing question
-            this.questionEl.style.opacity = 0;
-            setTimeout(() => {
-                this.questionEl.textContent = "What occasion is this gift for?";
-                this.questionEl.style.opacity = 1;
-            }, 300);
+            // Example of changing question based on AI reply
+            if (res && res.reply) {
+                this.questionEl.style.opacity = 0;
+                setTimeout(() => {
+                    this.questionEl.textContent = res.reply;
+                    this.questionEl.style.opacity = 1;
+                }, 300);
+            }
 
         } catch (error) {
             console.error("API Error", error);
             this.input.disabled = false;
             this.answerBtn.style.opacity = '1';
         }
-    }
-
-    mockApiCall(answer) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log("Submitted answer:", answer);
-                resolve({ success: true });
-            }, 800);
-        });
     }
 }
 

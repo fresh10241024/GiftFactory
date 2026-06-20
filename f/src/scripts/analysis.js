@@ -1,9 +1,13 @@
+import { generateAnalysisPlan } from './api.js';
+
 export class AnalysisController {
     constructor() {
         this.contentContainer = document.getElementById('analysis-content');
         this.loadingIndicator = document.getElementById('loading-indicator');
         this.actionFooter = document.getElementById('action-footer');
         this.revealBtn = document.getElementById('reveal-gift-btn');
+        
+        this.sessionId = localStorage.getItem('chat_session_id') || 'temp_session_id';
 
         this.init();
     }
@@ -16,8 +20,34 @@ export class AnalysisController {
         });
 
         try {
-            // ⭐ 预留调用后端接口获取 AI 分析数据 ⭐
-            const analysisData = await this.mockFetchAnalysisData();
+            const data = await generateAnalysisPlan(this.sessionId);
+            
+            // Format data into an array if backend returns a dict
+            let analysisData = [];
+            if (data && data.plan) {
+                // If it's a dict like { title1: "...", text1: "..." }
+                // Convert to array of objects
+                const planKeys = Object.keys(data.plan);
+                const titles = planKeys.filter(k => k.startsWith('title')).sort();
+                
+                titles.forEach(tKey => {
+                    const num = tKey.replace('title', '');
+                    const textKey = `text${num}`;
+                    if (data.plan[textKey]) {
+                        analysisData.push({
+                            title: data.plan[tKey],
+                            text: data.plan[textKey]
+                        });
+                    }
+                });
+            } else if (Array.isArray(data)) {
+                analysisData = data;
+            } else {
+                // Fallback mock
+                analysisData = [
+                    { title: "Analysis", text: "Generated successfully." }
+                ];
+            }
             
             this.loadingIndicator.style.display = 'none';
             this.renderAnalysis(analysisData);
@@ -25,27 +55,6 @@ export class AnalysisController {
             console.error("Failed to load analysis", error);
             this.loadingIndicator.textContent = "Failed to generate analysis.";
         }
-    }
-
-    mockFetchAnalysisData() {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve([
-                    {
-                        title: "1 — The Essence of the Gift",
-                        text: "Based on your responses, this gift embodies a profound appreciation for their creative spirit. It speaks to a shared memory of quiet afternoons and vibrant conversations."
-                    },
-                    {
-                        title: "2 — Emotional Resonance",
-                        text: "The selection reflects a desire to offer comfort and inspiration, a gentle reminder of the bond that ties you together through the passage of time."
-                    },
-                    {
-                        title: "3 — The Uncertain Future of Space",
-                        text: "As space continues to expand, questions remain about its ultimate fate, whether it will stretch forever into darkness or transform in ways we have yet to understand. Much like this journey, your relationship continues to evolve."
-                    }
-                ]);
-            }, 1500); // 1.5 seconds mock loading time
-        });
     }
 
     renderAnalysis(data) {
