@@ -117,13 +117,12 @@ export class ChatInteraction {
             console.log("图片上传成功");
 
         } catch (error) {
-            console.error("Upload API Error", error);
+            console.error("Upload failed:", error.message);
             this.uploadBtn.style.opacity = '1';
             this.uploadBtn.style.pointerEvents = 'auto';
             this.fileInput.value = '';
-            // If upload fails, optionally remove the card
-            // card.remove();
-            // alert('Failed to upload image');
+            card.remove();
+            alert(`图片上传失败：${error.message}`);
         }
     }
 

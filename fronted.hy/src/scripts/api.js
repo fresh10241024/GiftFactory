@@ -31,7 +31,10 @@ export async function uploadImage(sessionId, file) {
         method: 'POST',
         body: formData,
     });
-    if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Upload failed: ${response.status}`);
+    }
     return response.json();
 }
 
