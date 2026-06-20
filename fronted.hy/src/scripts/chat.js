@@ -11,6 +11,7 @@ export class ChatInteraction {
         // Upload Elements
         this.uploadBtn = document.getElementById('upload-button');
         this.fileInput = document.getElementById('image-upload-input');
+        this.gallery = document.getElementById('uploaded-gallery');
         
         // Finish Button
         this.finishBtn = document.getElementById('finish-chat-button');
@@ -68,9 +69,9 @@ export class ChatInteraction {
         });
 
         this.fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                this.handleFileUpload(file);
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                files.forEach(file => this.handleFileUpload(file));
             }
         });
 
@@ -84,6 +85,26 @@ export class ChatInteraction {
         // Visual feedback
         this.uploadBtn.style.opacity = '0.5';
         this.uploadBtn.style.pointerEvents = 'none';
+        
+        // Show local preview immediately
+        const objectUrl = URL.createObjectURL(file);
+        const card = document.createElement('div');
+        card.className = 'uploaded-image-card';
+        
+        const img = document.createElement('img');
+        img.src = objectUrl;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-image-btn';
+        deleteBtn.innerHTML = '✕';
+        deleteBtn.onclick = () => {
+            card.remove();
+            URL.revokeObjectURL(objectUrl);
+        };
+        
+        card.appendChild(img);
+        card.appendChild(deleteBtn);
+        this.gallery.appendChild(card);
         
         try {
             await uploadImage(this.sessionId, file);
@@ -100,6 +121,9 @@ export class ChatInteraction {
             this.uploadBtn.style.opacity = '1';
             this.uploadBtn.style.pointerEvents = 'auto';
             this.fileInput.value = '';
+            // If upload fails, optionally remove the card
+            // card.remove();
+            // alert('Failed to upload image');
         }
     }
 
