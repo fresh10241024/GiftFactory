@@ -11,7 +11,7 @@ from app.config import settings
 from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=180.0)
+client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=300.0)
 
 
 class ChatRequest(BaseModel):
@@ -167,12 +167,12 @@ def extract_html(text: str) -> str:
 
 
 def _call_claude(prompt: str) -> str:
-    with client.messages.stream(
+    response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=6000,
+        max_tokens=5000,
         messages=[{"role": "user", "content": prompt}]
-    ) as stream:
-        return stream.get_final_text()
+    )
+    return response.content[0].text
 
 
 def _run_generation(session_id: str, state: dict, plan: dict):
@@ -241,7 +241,7 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     return {"status": "generating"}
 
 
-GENERATION_TIMEOUT = 360  # 秒，超过视为卡死
+GENERATION_TIMEOUT = 660  # 秒：300s 第一次 + 5s 间隔 + 300s 重试 + 余量
 
 
 @router.get("/{session_id}/gift")
