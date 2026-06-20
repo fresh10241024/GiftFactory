@@ -393,7 +393,7 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     return {"status": "generating"}
 
 
-GENERATION_TIMEOUT = 660  # 秒：300s 第一次 + 5s 间隔 + 300s 重试 + 余量
+GENERATION_TIMEOUT = 180  # 秒：生成超过3分钟判定失败
 
 
 @router.get("/{session_id}/gift")
