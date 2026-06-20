@@ -223,27 +223,38 @@ async def create_plan(session_id: str):
         raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
 
     state = session.get("style_summary", {})
+
+    # 已有缓存的 plan，直接用，不重复调 AI
+    if state.get("_plan") and state.get("_analysis"):
+        plan = state["_plan"]
+        frontend_plan = state["_analysis"]
+        return {"plan": frontend_plan, "_full_plan": plan}
+
     prompt = PLAN_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
 
-    try:
+    def _generate_plan(prompt):
         ds = _make_deepseek()
         if ds:
-            r = ds.chat.completions.create(
-                model="deepseek-chat",
-                max_tokens=3000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            plan_text = r.choices[0].message.content.strip()
-        else:
-            r = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1500,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            plan_text = r.content[0].text.strip()
+            try:
+                r = ds.chat.completions.create(
+                    model="deepseek-chat",
+                    max_tokens=3000,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return r.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"[deepseek plan] failed ({e}), falling back to Claude")
+        r = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return r.content[0].text.strip()
+
+    try:
+        plan_text = _generate_plan(prompt)
         match = re.search(r"\{[\s\S]*\}", plan_text)
         raw = match.group(0) if match else plan_text
-        # 修补截断的 JSON：补全未闭合字符串和括号
         open_braces = raw.count('{') - raw.count('}')
         open_brackets = raw.count('[') - raw.count(']')
         if not raw.rstrip().endswith(('"', '}', ']')):
