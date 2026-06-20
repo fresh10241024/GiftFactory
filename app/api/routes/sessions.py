@@ -130,12 +130,21 @@ async def create_plan(session_id: str):
     prompt = PLAN_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
 
     try:
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=600,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        plan_text = response.content[0].text.strip()
+        ds = _make_deepseek()
+        if ds:
+            r = ds.chat.completions.create(
+                model="deepseek-chat",
+                max_tokens=600,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            plan_text = r.choices[0].message.content.strip()
+        else:
+            r = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=600,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            plan_text = r.content[0].text.strip()
         match = re.search(r"\{[\s\S]*\}", plan_text)
         raw = match.group(0) if match else plan_text
         # 修补截断的 JSON：补全未闭合字符串和括号
