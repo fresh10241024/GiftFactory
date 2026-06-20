@@ -83,13 +83,16 @@ async def set_password(body: SetPasswordRequest, authorization: Optional[str] = 
         raise HTTPException(status_code=401, detail="未登录")
     token = authorization.split(" ", 1)[1]
     try:
-        # 用用户的 token 创建一个带会话的客户端
-        from supabase import create_client
-        from app.config import settings
-        user_client = create_client(settings.supabase_url, settings.supabase_anon_key)
-        user_client.auth.set_session(token, "")
-        user_client.auth.update_user({"password": body.password})
+        user_resp = supabase.auth.get_user(token)
+        if not user_resp.user:
+            raise HTTPException(status_code=401, detail="Token 无效")
+        supabase.auth.admin.update_user_by_id(
+            user_resp.user.id,
+            {"password": body.password}
+        )
         return {"message": "密码设置成功"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
