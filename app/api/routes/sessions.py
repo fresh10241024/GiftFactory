@@ -1,6 +1,8 @@
 import re
 import json
 import uuid
+import time
+import traceback
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from anthropic import Anthropic
@@ -164,28 +166,49 @@ def extract_html(text: str) -> str:
     return html
 
 
+def _call_claude(prompt: str) -> str:
+    response = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=8000,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.content[0].text
+
+
 def _run_generation(session_id: str, state: dict, plan: dict):
-    try:
-        prompt = GENERATE_WEBSITE_PROMPT.format(
-            state=json.dumps(state, ensure_ascii=False),
-            plan=json.dumps(plan, ensure_ascii=False)
-        )
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=8192,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        html = extract_html(response.content[0].text)
-        slug = str(uuid.uuid4())[:8]
-        supabase.table("gifts").insert({
-            "id": str(uuid.uuid4()),
-            "session_id": session_id,
-            "slug": slug,
-            "html": html
-        }).execute()
-        supabase.table("sessions").update({"status": "done"}).eq("id", session_id).execute()
-    except Exception as e:
-        supabase.table("sessions").update({"status": "error"}).eq("id", session_id).execute()
+    prompt = GENERATE_WEBSITE_PROMPT.format(
+        state=json.dumps(state, ensure_ascii=False),
+        plan=json.dumps(plan, ensure_ascii=False)
+    )
+    last_error = None
+    for attempt in range(1, 3):
+        try:
+            print(f"[generation] session={session_id} attempt={attempt} start")
+            t0 = time.time()
+            raw = _call_claude(prompt)
+            print(f"[generation] session={session_id} attempt={attempt} claude_ok elapsed={time.time()-t0:.1f}s len={len(raw)}")
+            html = extract_html(raw)
+            slug = str(uuid.uuid4())[:8]
+            supabase.table("gifts").insert({
+                "id": str(uuid.uuid4()),
+                "session_id": session_id,
+                "slug": slug,
+                "html": html
+            }).execute()
+            supabase.table("sessions").update({"status": "done"}).eq("id", session_id).execute()
+            print(f"[generation] session={session_id} done slug={slug}")
+            return
+        except Exception as e:
+            last_error = str(e)
+            print(f"[generation] session={session_id} attempt={attempt} FAILED: {last_error}")
+            traceback.print_exc()
+            if attempt < 2:
+                time.sleep(5)
+    supabase.table("sessions").update({
+        "status": "error",
+        "style_summary": {**state, "_error": last_error}
+    }).eq("id", session_id).execute()
+    print(f"[generation] session={session_id} all attempts failed")
 
 
 @router.post("/{session_id}/generate")
@@ -227,7 +250,8 @@ async def get_gift_status(session_id: str):
         if existing.data:
             return {"status": "done", "slug": existing.data[0]["slug"]}
     if status == "error":
-        return {"status": "error"}
+        err = result.data[0].get("style_summary", {}).get("_error", "unknown") if result.data else "unknown"
+        return {"status": "error", "error": err}
     return {"status": "generating"}
 
 

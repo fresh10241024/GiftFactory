@@ -192,7 +192,7 @@ async function generateGift() {
         document.getElementById('gift-frame').src = `${BASE}/gifts/${giftSlug}`
         showStep(4)
       } else if (d.status === 'error') {
-        log('log3', '❌ 生成失败，请重试')
+        log('log3', `❌ 生成失败：${d.error || '未知错误'}`)
         document.getElementById('gen-btn').disabled = false
       } else {
         pollTimer = setTimeout(poll, 3000)
