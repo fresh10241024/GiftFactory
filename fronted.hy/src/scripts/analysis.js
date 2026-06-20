@@ -20,40 +20,35 @@ export class AnalysisController {
         });
 
         try {
-            const data = await generateAnalysisPlan(this.sessionId);
-            
-            // Format data into an array if backend returns a dict
+            const data = await generateAnalysisPlan(this.sessionId, {
+                onRetry: (attempt, total, msg) => {
+                    this.loadingIndicator.textContent = `Retrying... (${attempt}/${total}) — ${msg}`;
+                }
+            });
+
             let analysisData = [];
             if (data && data.plan) {
-                // If it's a dict like { title1: "...", text1: "..." }
-                // Convert to array of objects
-                const planKeys = Object.keys(data.plan);
-                const titles = planKeys.filter(k => k.startsWith('title')).sort();
-                
+                const titles = Object.keys(data.plan).filter(k => k.startsWith('title')).sort();
                 titles.forEach(tKey => {
                     const num = tKey.replace('title', '');
-                    const textKey = `text${num}`;
-                    if (data.plan[textKey]) {
-                        analysisData.push({
-                            title: data.plan[tKey],
-                            text: data.plan[textKey]
-                        });
+                    if (data.plan[`text${num}`]) {
+                        analysisData.push({ title: data.plan[tKey], text: data.plan[`text${num}`] });
                     }
                 });
             } else if (Array.isArray(data)) {
                 analysisData = data;
-            } else {
-                // Fallback mock
-                analysisData = [
-                    { title: "Analysis", text: "Generated successfully." }
-                ];
             }
-            
+
+            if (analysisData.length === 0) {
+                this.loadingIndicator.textContent = 'Analysis returned empty, please go back and try again.';
+                return;
+            }
+
             this.loadingIndicator.style.display = 'none';
             this.renderAnalysis(analysisData);
         } catch (error) {
             console.error("Failed to load analysis", error);
-            this.loadingIndicator.textContent = "Failed to generate analysis.";
+            this.loadingIndicator.innerHTML = `Generation failed: ${error.message}<br><br><a href="./chat.html" style="color:rgba(255,255,255,0.6);font-size:0.85rem">← Go back</a>`;
         }
     }
 

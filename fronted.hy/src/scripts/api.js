@@ -13,6 +13,21 @@ async function fetchApi(endpoint, options = {}) {
     return response.json();
 }
 
+async function fetchWithRetry(endpoint, options = {}, { retries = 3, delayMs = 1500, onRetry } = {}) {
+    let lastErr;
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fetchApi(endpoint, options);
+        } catch (err) {
+            lastErr = err;
+            console.warn(`[retry ${i + 1}/${retries}] ${endpoint} — ${err.message}`);
+            if (onRetry) onRetry(i + 1, retries, err.message);
+            if (i < retries - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+        }
+    }
+    throw lastErr;
+}
+
 export async function createSession() {
     const token = localStorage.getItem('token');
     return fetchApi('/sessions', {
@@ -42,11 +57,11 @@ function authHeader() {
 }
 
 export async function sendChatMessage(sessionId, message) {
-    return fetchApi(`/sessions/${sessionId}/chat`, {
+    return fetchWithRetry(`/sessions/${sessionId}/chat`, {
         method: 'POST',
         headers: authHeader(),
         body: JSON.stringify({ message }),
-    });
+    }, { retries: 2, delayMs: 1000 });
 }
 
 export async function uploadImage(sessionId, file) {
@@ -64,14 +79,14 @@ export async function uploadImage(sessionId, file) {
     return response.json();
 }
 
-export async function generateAnalysisPlan(sessionId) {
-    return fetchApi(`/sessions/${sessionId}/plan`, { method: 'POST', headers: authHeader() });
+export async function generateAnalysisPlan(sessionId, { onRetry } = {}) {
+    return fetchWithRetry(`/sessions/${sessionId}/plan`, { method: 'POST', headers: authHeader() }, { retries: 3, delayMs: 2000, onRetry });
 }
 
 export async function startGeneratingGift(sessionId) {
-    return fetchApi(`/sessions/${sessionId}/generate`, { method: 'POST', headers: authHeader() });
+    return fetchWithRetry(`/sessions/${sessionId}/generate`, { method: 'POST', headers: authHeader() }, { retries: 2, delayMs: 1500 });
 }
 
 export async function pollGiftStatus(sessionId) {
-    return fetchApi(`/sessions/${sessionId}/gift`, { headers: authHeader() });
+    return fetchWithRetry(`/sessions/${sessionId}/gift`, { headers: authHeader() }, { retries: 2, delayMs: 1000 });
 }
