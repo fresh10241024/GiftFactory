@@ -48,18 +48,20 @@
 
         async function poll(sid) {
             const dots = ['·', '··', '···', '····'];
-            let d = 0;
+            let d = 0, errCount = 0;
             const timer = setInterval(() => {
                 document.getElementById('status-text').textContent = '生成中 ' + dots[d++ % 4];
             }, 700);
-            for (let i = 0; i < 200; i++) {
+            for (let i = 0; i < 80; i++) {
                 await new Promise(r => setTimeout(r, 3000));
                 try {
                     const res = await fetch(BASE + '/sessions/' + sid + '/gift');
+                    if (!res.ok) { errCount++; if (errCount >= 3) { clearInterval(timer); showError('服务器错误 ' + res.status); return; } continue; }
+                    errCount = 0;
                     const data = await res.json();
                     if (data.status === 'done') { clearInterval(timer); showGift(data.slug); return; }
                     if (data.status === 'error') { clearInterval(timer); showError(data.error); return; }
-                } catch (e) {}
+                } catch (e) { errCount++; if (errCount >= 3) { clearInterval(timer); showError('网络异常，请重试'); return; } }
             }
             clearInterval(timer);
             showError('生成超时，请重试');

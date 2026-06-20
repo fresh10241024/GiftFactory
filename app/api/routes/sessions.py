@@ -385,9 +385,10 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks):
     state = dict(session.get("style_summary", {}))
     plan = state.pop("_plan", {})
 
+    from datetime import datetime, timezone
     supabase.table("sessions").update({
         "status": "generating",
-        "updated_at": "now()"
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", session_id).execute()
     background_tasks.add_task(_run_generation, session_id, state, plan)
     return {"status": "generating"}
