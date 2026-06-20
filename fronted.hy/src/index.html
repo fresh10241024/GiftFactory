@@ -20,8 +20,7 @@
     <div class="frame__infos">
     </div>
     <div class="frame__auth-buttons">
-      <button class="button--login">Log in</button>
-      <button class="button--signup">Sign up</button>
+      <button class="button--login" id="open-auth-modal">Log in / Sign up</button>
     </div>
   </header>
   <main>
@@ -85,45 +84,54 @@
     </section>
   </main>
 
-  <!-- Login Modal -->
-  <div id="login-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
     <div class="modal-content">
-      <h2 id="login-title">Log In</h2>
-      <form>
-        <label for="login-email">Email:</label>
-        <input type="email" id="login-email" name="email" required>
-        <label for="login-password">Password:</label>
-        <input type="password" id="login-password" name="password" required>
-        <button type="submit">Log In</button>
-      </form>
-      <p>Or log in with:</p>
-      <div class="social-login">
-        <button class="google-login">Google</button>
-        <button class="github-login">GitHub</button>
-      </div>
-      <button class="close-button" aria-label="Close login form">&times;</button>
-    </div>
-  </div>
+      <button class="close-button" aria-label="Close">&times;</button>
 
-  <!-- Sign Up Modal -->
-  <div id="signup-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="signup-title">
-    <div class="modal-content">
-      <h2 id="signup-title">Sign Up</h2>
-      <form>
-        <label for="signup-email">Email:</label>
-        <input type="email" id="signup-email" name="email" required>
-        <label for="signup-password">Password:</label>
-        <input type="password" id="signup-password" name="password" required>
-        <label for="signup-confirm-password">Confirm Password:</label>
-        <input type="password" id="signup-confirm-password" name="confirm-password" required>
-        <button type="submit">Sign Up</button>
-      </form>
-      <p>Or sign up with:</p>
-      <div class="social-login">
-        <button class="google-signup">Google</button>
-        <button class="github-signup">GitHub</button>
+      <!-- Step 1: email -->
+      <div id="auth-step-email">
+        <h2 id="auth-title">登录 / 注册</h2>
+        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 16px">输入邮箱，发送验证码</p>
+        <form id="auth-email-form">
+          <input type="email" id="auth-email" placeholder="your@email.com" required autocomplete="email">
+          <button type="submit">发送验证码</button>
+          <p class="form-error"></p>
+        </form>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
+          <p style="font-size:0.85rem;opacity:0.5;margin:0 0 10px">已有密码？直接登录</p>
+          <form id="auth-password-form">
+            <input type="email" id="auth-pw-email" placeholder="邮箱" required autocomplete="email">
+            <input type="password" id="auth-pw-password" placeholder="密码" required autocomplete="current-password">
+            <button type="submit">密码登录</button>
+            <p class="form-error"></p>
+          </form>
+        </div>
       </div>
-      <button class="close-button" aria-label="Close signup form">&times;</button>
+
+      <!-- Step 2: OTP code -->
+      <div id="auth-step-code" style="display:none">
+        <h2>输入验证码</h2>
+        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 20px">已发送到 <span id="auth-email-display"></span></p>
+        <form id="auth-code-form">
+          <input type="text" id="auth-code" placeholder="6位验证码" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+          <button type="submit">确认登录</button>
+          <p class="form-error"></p>
+        </form>
+        <button id="auth-back-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">← 重新输入邮箱</button>
+      </div>
+
+      <!-- Step 3: optional set password -->
+      <div id="auth-step-setpw" style="display:none">
+        <h2>设置密码（可选）</h2>
+        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 20px">下次可以直接用邮箱+密码登录，不用再等验证码</p>
+        <form id="auth-setpw-form">
+          <input type="password" id="auth-new-password" placeholder="设置密码（至少6位）" minlength="6" autocomplete="new-password">
+          <button type="submit">保存密码</button>
+          <p class="form-error"></p>
+        </form>
+        <button id="auth-skip-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">跳过，以后再说</button>
+      </div>
     </div>
   </div>
 

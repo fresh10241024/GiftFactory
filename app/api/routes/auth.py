@@ -1,56 +1,92 @@
-import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
+from typing import Optional
 from app.db import supabase
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-class AuthRequest(BaseModel):
+class EmailRequest(BaseModel):
+    email: str
+
+
+class OTPVerifyRequest(BaseModel):
+    email: str
+    code: str
+
+
+class PasswordLoginRequest(BaseModel):
     email: str
     password: str
 
 
-class RegisterRequest(BaseModel):
-    email: str
+class SetPasswordRequest(BaseModel):
     password: str
-    confirmPassword: str = ""
 
 
-@router.post("/register")
-async def register(body: RegisterRequest):
-    if body.confirmPassword and body.password != body.confirmPassword:
-        raise HTTPException(status_code=400, detail="Passwords do not match")
+@router.post("/send-otp")
+async def send_otp(body: EmailRequest):
     try:
-        res = supabase.auth.sign_up({"email": body.email, "password": body.password})
-        user = res.user
-        if not user:
-            raise HTTPException(status_code=400, detail="Registration failed")
-        return {"message": "Registration successful", "userId": user.id}
+        supabase.auth.sign_in_with_otp({"email": body.email})
+        return {"message": "验证码已发送"}
     except Exception as e:
-        msg = str(e)
-        if "already registered" in msg.lower() or "already exists" in msg.lower():
-            raise HTTPException(status_code=400, detail="Email already exists")
-        raise HTTPException(status_code=400, detail=msg)
+        raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/login")
-async def login(body: AuthRequest):
+@router.post("/verify-otp")
+async def verify_otp(body: OTPVerifyRequest):
     try:
-        res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
-        session = res.session
-        user = res.user
-        if not session:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+        res = supabase.auth.verify_otp({
+            "email": body.email,
+            "token": body.code,
+            "type": "email"
+        })
+        if not res.session:
+            raise HTTPException(status_code=401, detail="验证码无效或已过期")
         return {
-            "message": "Login successful",
-            "token": session.access_token,
-            "userId": user.id,
+            "token": res.session.access_token,
+            "userId": res.user.id,
         }
     except HTTPException:
         raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="验证码无效或已过期")
+
+
+@router.post("/login")
+async def login(body: PasswordLoginRequest):
+    try:
+        res = supabase.auth.sign_in_with_password({
+            "email": body.email,
+            "password": body.password
+        })
+        if not res.session:
+            raise HTTPException(status_code=401, detail="邮箱或密码错误")
+        return {
+            "token": res.session.access_token,
+            "userId": res.user.id,
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="邮箱或密码错误")
+
+
+@router.post("/set-password")
+async def set_password(body: SetPasswordRequest, authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未登录")
+    token = authorization.split(" ", 1)[1]
+    try:
+        # 用用户的 token 创建一个带会话的客户端
+        from supabase import create_client
+        from app.config import settings
+        user_client = create_client(settings.supabase_url, settings.supabase_anon_key)
+        user_client.auth.set_session(token, "")
+        user_client.auth.update_user({"password": body.password})
+        return {"message": "密码设置成功"}
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/logout")
@@ -59,4 +95,4 @@ async def logout():
         supabase.auth.sign_out()
     except Exception:
         pass
-    return {"message": "Logged out"}
+    return {"message": "已退出"}

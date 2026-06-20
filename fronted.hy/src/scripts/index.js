@@ -272,144 +272,152 @@ function initSmoothScrolling() {
     gsap.ticker.lagSmoothing(0)
 }
 
-// Modal functionality
-const loginButton = document.querySelector('.button--login');
-const signupButton = document.querySelector('.button--signup');
-const loginModal = document.getElementById('login-modal');
-const signupModal = document.getElementById('signup-modal');
+// Modal
+const authModal = document.getElementById('auth-modal');
 
 function openModal(modal) {
     modal.classList.add('is-active');
     modal.setAttribute('aria-hidden', 'false');
-    const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    if (focusableElements.length > 0) {
-        focusableElements[0].focus();
-    }
+    modal.querySelector('input')?.focus();
 }
-
 function closeModal(modal) {
     modal.classList.remove('is-active');
     modal.setAttribute('aria-hidden', 'true');
 }
-
-if (loginButton) {
-    loginButton.addEventListener('click', () => openModal(loginModal));
+function showStep(step) {
+    ['auth-step-email', 'auth-step-code', 'auth-step-setpw'].forEach(id => {
+        document.getElementById(id).style.display = id === step ? '' : 'none';
+    });
+}
+function formError(form, msg) {
+    form.querySelector('.form-error').textContent = msg;
+}
+function setBtnLoading(btn, loading, label) {
+    btn.disabled = loading;
+    btn.textContent = loading ? '请稍候...' : label;
 }
 
-if (signupButton) {
-    signupButton.addEventListener('click', () => openModal(signupModal));
-}
+document.getElementById('open-auth-modal')?.addEventListener('click', () => {
+    showStep('auth-step-email');
+    openModal(authModal);
+});
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) closeModal(e.target);
+    if (e.target.classList.contains('close-button')) closeModal(e.target.closest('.modal'));
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal.is-active').forEach(closeModal);
+});
 
-// Close modals when clicking outside or on close button
-document.addEventListener('click', (event) => {
-    if (event.target.classList.contains('modal')) {
-        closeModal(event.target);
-    }
-    if (event.target.classList.contains('close-button')) {
-        closeModal(event.target.closest('.modal'));
+let _otpEmail = '';
+
+// Step 1a: send OTP
+document.getElementById('auth-email-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const email = document.getElementById('auth-email').value.trim();
+    const btn = form.querySelector('button[type="submit"]');
+    formError(form, '');
+    setBtnLoading(btn, true, '发送验证码');
+    try {
+        const res = await fetch('/api/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '发送失败');
+        _otpEmail = email;
+        document.getElementById('auth-email-display').textContent = email;
+        showStep('auth-step-code');
+    } catch (err) {
+        formError(form, err.message);
+    } finally {
+        setBtnLoading(btn, false, '发送验证码');
     }
 });
 
-// Close modals with Esc key
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-        const activeModals = document.querySelectorAll('.modal.is-active');
-        activeModals.forEach(modal => closeModal(modal));
+// Step 1b: password login
+document.getElementById('auth-password-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const email = document.getElementById('auth-pw-email').value.trim();
+    const password = document.getElementById('auth-pw-password').value;
+    const btn = form.querySelector('button[type="submit"]');
+    formError(form, '');
+    setBtnLoading(btn, true, '密码登录');
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '登录失败');
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.userId);
+        closeModal(authModal);
+    } catch (err) {
+        formError(form, err.message);
+    } finally {
+        setBtnLoading(btn, false, '密码登录');
     }
 });
 
-// Auth helpers
-function showFormError(form, msg) {
-    let el = form.querySelector('.form-error');
-    if (!el) {
-        el = document.createElement('p');
-        el.className = 'form-error';
-        el.style.cssText = 'color:#ff6b6b;font-size:0.85rem;margin:8px 0 0';
-        form.appendChild(el);
+// Step 2: verify OTP
+document.getElementById('auth-code-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const code = document.getElementById('auth-code').value.trim();
+    const btn = form.querySelector('button[type="submit"]');
+    formError(form, '');
+    setBtnLoading(btn, true, '确认登录');
+    try {
+        const res = await fetch('/api/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: _otpEmail, code }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '验证失败');
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.userId);
+        showStep('auth-step-setpw');
+    } catch (err) {
+        formError(form, err.message);
+    } finally {
+        setBtnLoading(btn, false, '确认登录');
     }
-    el.textContent = msg;
-}
+});
 
-function clearFormError(form) {
-    const el = form.querySelector('.form-error');
-    if (el) el.textContent = '';
-}
+document.getElementById('auth-back-btn')?.addEventListener('click', () => showStep('auth-step-email'));
 
-// Login form
-const loginForm = loginModal?.querySelector('form');
-if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        clearFormError(loginForm);
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        const btn = loginForm.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        btn.textContent = '登录中...';
-        try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || '登录失败');
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('userId', data.userId);
-            closeModal(loginModal);
-        } catch (err) {
-            showFormError(loginForm, err.message);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Log In';
-        }
-    });
-}
+// Step 3: set password (optional)
+document.getElementById('auth-setpw-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const password = document.getElementById('auth-new-password').value;
+    const btn = form.querySelector('button[type="submit"]');
+    formError(form, '');
+    setBtnLoading(btn, true, '保存密码');
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/auth/set-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '设置失败');
+        closeModal(authModal);
+    } catch (err) {
+        formError(form, err.message);
+    } finally {
+        setBtnLoading(btn, false, '保存密码');
+    }
+});
 
-// Signup form
-const signupForm = signupModal?.querySelector('form');
-if (signupForm) {
-    signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        clearFormError(signupForm);
-        const email = document.getElementById('signup-email').value.trim();
-        const password = document.getElementById('signup-password').value;
-        const confirmPassword = document.getElementById('signup-confirm-password').value;
-        if (password !== confirmPassword) {
-            showFormError(signupForm, '两次密码不一致');
-            return;
-        }
-        const btn = signupForm.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        btn.textContent = '注册中...';
-        try {
-            const res = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, confirmPassword }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || '注册失败');
-            // 注册成功后自动登录
-            const loginRes = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            const loginData = await loginRes.json();
-            if (loginRes.ok) {
-                localStorage.setItem('token', loginData.token);
-                localStorage.setItem('userId', loginData.userId);
-            }
-            closeModal(signupModal);
-        } catch (err) {
-            showFormError(signupForm, err.message);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Sign Up';
-        }
-    });
-}
+document.getElementById('auth-skip-btn')?.addEventListener('click', () => closeModal(authModal));
 
 // Preload images then initialize everything
 preloadImages().then(() => {
