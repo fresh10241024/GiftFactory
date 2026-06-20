@@ -240,13 +240,15 @@ async def create_plan(session_id: str, background_tasks: BackgroundTasks, author
     session = result.data[0]
     _check_session_access(session, _get_user_id(authorization))
     state = session.get("style_summary") or {}
-    has_content = any(v for k, v in state.items() if k not in ("mood",) and v and v is not False)
-    if not has_content:
-        return {"status": "not_ready", "detail": "Please complete the chat first"}
 
     # Already cached — return immediately
     if state.get("_plan") and state.get("_analysis"):
         return {"status": "done", "plan": state["_analysis"]}
+
+    # Check there's at least some conversation to work with
+    msg_count = supabase.table("messages").select("id", count="exact").eq("session_id", session_id).execute()
+    if (msg_count.count or 0) < 2:
+        return {"status": "not_ready", "detail": "Please chat a bit more first"}
 
     # Mark as planning so client can poll
     supabase.table("sessions").update({"status": "planning"}).eq("id", session_id).execute()
@@ -256,7 +258,22 @@ async def create_plan(session_id: str, background_tasks: BackgroundTasks, author
 
 def _run_plan(session_id: str, state: dict):
     try:
-        prompt = PLAN_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
+        # Pull full conversation history — the ground truth
+        history_rows = supabase.table("messages").select("role, content").eq("session_id", session_id).order("created_at").execute()
+        history = history_rows.data or []
+        # Build readable transcript (strip <state> blocks from AI messages)
+        transcript_lines = []
+        for m in history:
+            role = "User" if m["role"] == "user" else "AI"
+            content = re.sub(r"<state>.*?</state>", "", m["content"], flags=re.DOTALL).strip()
+            if content:
+                transcript_lines.append(f"{role}: {content}")
+        transcript = "\n".join(transcript_lines)
+
+        # Merge state for any extracted structured data
+        state_info = {k: v for k, v in state.items() if v and v is not False and k not in ("mood", "_plan", "_analysis")}
+
+        prompt = PLAN_PROMPT.format(state=f"Conversation:\n{transcript}\n\nExtracted info: {json.dumps(state_info, ensure_ascii=False)}")
 
         ds = OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=25.0) if settings.deepseek_api_key else None
         plan_text = None
@@ -264,12 +281,15 @@ def _run_plan(session_id: str, state: dict):
             try:
                 r = ds.chat.completions.create(model="deepseek-chat", max_tokens=3000, messages=[{"role": "user", "content": prompt}])
                 plan_text = r.choices[0].message.content.strip()
+                print(f"[plan] deepseek responded, length={len(plan_text)}")
             except Exception as e:
                 print(f"[plan] deepseek failed ({e}), falling back to Claude Haiku")
         if not plan_text:
             r = client.messages.create(model="claude-haiku-4-5", max_tokens=2000, messages=[{"role": "user", "content": prompt}])
             plan_text = r.content[0].text.strip()
+            print(f"[plan] claude responded, length={len(plan_text)}")
 
+        # Robust JSON extraction
         match = re.search(r"\{[\s\S]*\}", plan_text)
         raw = match.group(0) if match else plan_text
         open_braces = raw.count('{') - raw.count('}')
@@ -280,7 +300,7 @@ def _run_plan(session_id: str, state: dict):
         plan = json.loads(raw)
 
         scenes = plan.get("scenes", [])
-        recipient = state.get("recipient_name", "Ta")
+        recipient = state.get("recipient_name") or (scenes[0].get("sub", "").replace("For ", "") if scenes else "you")
         s2 = next((s for s in scenes if s.get("act") == 2), scenes[1] if len(scenes) > 1 else {})
         s3 = next((s for s in scenes if s.get("act") == 3), scenes[2] if len(scenes) > 2 else {})
         style_name = plan.get("style_archetype", "").split(".")[-1].strip() if plan.get("style_archetype") else ""
@@ -299,7 +319,8 @@ def _run_plan(session_id: str, state: dict):
         }).eq("id", session_id).execute()
         print(f"[plan] {session_id} done")
     except Exception as e:
-        print(f"[plan] {session_id} error: {e}")
+        import traceback
+        print(f"[plan] {session_id} error: {e}\n{traceback.format_exc()}")
         supabase.table("sessions").update({"status": "plan_error"}).eq("id", session_id).execute()
 
 
