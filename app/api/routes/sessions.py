@@ -192,12 +192,25 @@ async def create_plan(session_id: str):
 
     supabase.table("sessions").update({"style_summary": {**state, "_plan": plan}}).eq("id", session_id).execute()
 
-    # 把 scenes 转成前端 analysis 页面期望的 title1/text1 格式
+    # Analysis 页面展示 3 段情感洞察（不是技术方案）
     scenes = plan.get("scenes", [])
-    frontend_plan = {"concept": plan.get("concept", ""), "style": plan.get("style_archetype", "")}
-    for i, scene in enumerate(scenes[:3], start=1):
-        frontend_plan[f"title{i}"] = scene.get("headline", scene.get("role", ""))
-        frontend_plan[f"text{i}"] = scene.get("body", "")
+    recipient = state.get("recipient_name", "Ta")
+
+    # 第1段：关于这个人
+    s2 = next((s for s in scenes if s.get("act") == 2), scenes[1] if len(scenes) > 1 else {})
+    # 第2段：那个时刻
+    s3 = next((s for s in scenes if s.get("act") == 3), scenes[2] if len(scenes) > 2 else {})
+    # 第3段：这份礼物的气质（用风格原因+氛围描述）
+    style_name = plan.get("style_archetype", "").split(".")[-1].strip() if plan.get("style_archetype") else ""
+
+    frontend_plan = {
+        "title1": s2.get("headline") or f"关于 {recipient}",
+        "text1": s2.get("body") or "",
+        "title2": s3.get("headline") or "那个时刻",
+        "text2": s3.get("body") or "",
+        "title3": plan.get("concept") or "这份礼物",
+        "text3": plan.get("atmosphere") or f"这是一份{style_name}风格的礼物，为你们的故事而生。",
+    }
 
     return {"plan": frontend_plan, "_full_plan": plan}
 
