@@ -132,13 +132,19 @@ async def create_plan(session_id: str):
     try:
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=1024,
+            max_tokens=600,
             messages=[{"role": "user", "content": prompt}]
         )
         plan_text = response.content[0].text.strip()
-        # 提取 JSON
         match = re.search(r"\{[\s\S]*\}", plan_text)
-        plan = json.loads(match.group(0)) if match else json.loads(plan_text)
+        raw = match.group(0) if match else plan_text
+        # 修补截断的 JSON：补全未闭合字符串和括号
+        open_braces = raw.count('{') - raw.count('}')
+        open_brackets = raw.count('[') - raw.count(']')
+        if not raw.rstrip().endswith(('"', '}', ']')):
+            raw += '"'
+        raw += ']' * open_brackets + '}' * open_braces
+        plan = json.loads(raw)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Plan generation failed: {str(e)}")
 
