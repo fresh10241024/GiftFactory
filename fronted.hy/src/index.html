@@ -93,48 +93,33 @@ A custom website gift for someone special.</figcaption>
     <div class="modal-content">
       <button class="close-button" aria-label="Close">&times;</button>
 
-      <!-- Step 1: email -->
-      <div id="auth-step-email">
-        <h2 id="auth-title">Log in / Sign up</h2>
-        <p class="modal-subtitle">—</p>
-        <form id="auth-email-form">
-          <input type="email" id="auth-email" placeholder="your@email.com" required autocomplete="email">
-          <button type="submit">
-            <span class="roll-text"><span class="roll-text-inner" data-text="Send Code">Send Code</span></span>
-          </button>
+      <!-- Login / Register -->
+      <div id="auth-step-main">
+        <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <button id="tab-login" onclick="switchTab('login')" style="flex:1;background:none;border:none;color:#fff;padding:10px;font-size:0.9rem;cursor:pointer;border-bottom:2px solid #fff;opacity:1">Log in</button>
+          <button id="tab-register" onclick="switchTab('register')" style="flex:1;background:none;border:none;color:#fff;padding:10px;font-size:0.9rem;cursor:pointer;border-bottom:2px solid transparent;opacity:0.4">Sign up</button>
+        </div>
+
+        <form id="auth-login-form">
+          <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+          <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+          <button type="submit">Log in</button>
           <p class="form-error"></p>
         </form>
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
-          <p class="modal-subtitle">—</p>
-          <form id="auth-password-form">
-            <input type="email" id="auth-pw-email" placeholder="Email" required autocomplete="email">
-            <input type="password" id="auth-pw-password" placeholder="Password" required autocomplete="current-password">
-            <button type="submit">
-              <span class="roll-text"><span class="roll-text-inner" data-text="Log in">Log in</span></span>
-            </button>
-            <p class="form-error"></p>
-          </form>
-        </div>
+
+        <form id="auth-register-form" style="display:none">
+          <input type="email" id="reg-email" placeholder="Email" required autocomplete="email">
+          <input type="password" id="reg-password" placeholder="Password (min 6 chars)" minlength="6" required autocomplete="new-password">
+          <button type="submit">Create account</button>
+          <p class="form-error"></p>
+        </form>
       </div>
 
-      <!-- Step 2: link sent -->
-      <div id="auth-step-code" style="display:none">
-        <h2>Check your email</h2>
-        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 8px">Login link sent to</p>
-        <p style="font-weight:600;margin:0 0 20px"><span id="auth-email-display"></span></p>
-        <p style="font-size:0.85rem;opacity:0.5;line-height:1.6">Click the link in the email to log in automatically.<br>Didn't receive it? Check your spam folder.</p>
-        <button id="auth-back-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:20px;font-size:0.85rem;color:inherit">← Use different email</button>
-      </div>
-
-      <!-- Step 3: optional set password -->
+      <!-- placeholder to keep old JS refs working -->
+      <div id="auth-step-code" style="display:none"></div>
       <div id="auth-step-setpw" style="display:none">
-        <h2>Set Password (Optional)</h2>
-        <p style="font-size:0.9rem;opacity:0.6;margin:4px 0 20px">You can use Email+Password to log in directly next time without waiting for a code</p>
-        <form id="auth-setpw-form">
-          <input type="password" id="auth-new-password" placeholder="Set password (min 6 chars)" minlength="6" autocomplete="new-password">
-          <button type="submit">
-            <span class="roll-text"><span class="roll-text-inner" data-text="Save password">Save password</span></span>
-          </button>
+        <form id="auth-setpw-form" style="display:none">
+          <button type="submit" style="display:none"></button>
           <p class="form-error"></p>
         </form>
         <button id="auth-skip-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">Skip, maybe later</button>

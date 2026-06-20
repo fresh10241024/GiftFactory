@@ -313,43 +313,35 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') document.querySelectorAll('.modal.is-active').forEach(closeModal);
 });
 
-let _otpEmail = '';
+window.switchTab = function(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('auth-login-form').style.display = isLogin ? '' : 'none';
+    document.getElementById('auth-register-form').style.display = isLogin ? 'none' : '';
+    document.getElementById('tab-login').style.opacity = isLogin ? '1' : '0.4';
+    document.getElementById('tab-login').style.borderBottomColor = isLogin ? '#fff' : 'transparent';
+    document.getElementById('tab-register').style.opacity = isLogin ? '0.4' : '1';
+    document.getElementById('tab-register').style.borderBottomColor = isLogin ? 'transparent' : '#fff';
+};
 
-// Step 1a: send OTP
-document.getElementById('auth-email-form')?.addEventListener('submit', async (e) => {
+function saveAuth(data, email) {
+    const payload = parseJwt(data.token);
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('refresh_token', data.refresh_token || '');
+    localStorage.setItem('userId', data.userId);
+    localStorage.setItem('token_exp', payload.exp || '');
+    localStorage.setItem('userEmail', email);
+    closeModal(authModal);
+    updateAuthUI();
+}
+
+document.getElementById('auth-login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
-    const email = document.getElementById('auth-email').value.trim();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
     const btn = form.querySelector('button[type="submit"]');
     formError(form, '');
-    setBtnLoading(btn, true, 'Sending Code');
-    try {
-        const res = await fetch('/api/auth/send-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Failed to send');
-        _otpEmail = email;
-        document.getElementById('auth-email-display').textContent = email;
-        showStep('auth-step-code');
-    } catch (err) {
-        formError(form, err.message);
-    } finally {
-        setBtnLoading(btn, false, 'Send Code');
-    }
-});
-
-// Step 1b: password login
-document.getElementById('auth-password-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const email = document.getElementById('auth-pw-email').value.trim();
-    const password = document.getElementById('auth-pw-password').value;
-    const btn = form.querySelector('button[type="submit"]');
-    formError(form, '');
-    setBtnLoading(btn, true, 'Logging in');
+    setBtnLoading(btn, true, 'Logging in...');
     try {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
@@ -358,14 +350,7 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Login failed');
-        const payload = parseJwt(data.token);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('refresh_token', data.refresh_token || '');
-        localStorage.setItem('userId', data.userId);
-        localStorage.setItem('token_exp', payload.exp || '');
-        localStorage.setItem('userEmail', email);
-        closeModal(authModal);
-        updateAuthUI();
+        saveAuth(data, email);
     } catch (err) {
         formError(form, err.message);
     } finally {
@@ -373,7 +358,29 @@ document.getElementById('auth-password-form')?.addEventListener('submit', async 
     }
 });
 
-document.getElementById('auth-back-btn')?.addEventListener('click', () => showStep('auth-step-email'));
+document.getElementById('auth-register-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const btn = form.querySelector('button[type="submit"]');
+    formError(form, '');
+    setBtnLoading(btn, true, 'Creating account...');
+    try {
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Registration failed');
+        saveAuth(data, email);
+    } catch (err) {
+        formError(form, err.message);
+    } finally {
+        setBtnLoading(btn, false, 'Create account');
+    }
+});
 
 // Handle magic link redirect: Supabase appends #access_token=... to the URL
 function parseJwt(token) {
@@ -395,19 +402,6 @@ function updateAuthUI() {
 }
 updateAuthUI();
 
-const hashParams = new URLSearchParams(window.location.hash.substring(1));
-const magicToken = hashParams.get('access_token');
-if (magicToken) {
-    const payload = parseJwt(magicToken);
-    localStorage.setItem('token', magicToken);
-    localStorage.setItem('refresh_token', hashParams.get('refresh_token') || '');
-    localStorage.setItem('userId', payload.sub || '');
-    localStorage.setItem('token_exp', payload.exp || '');
-    if (payload.email) localStorage.setItem('userEmail', payload.email);
-    window.history.replaceState({}, document.title, window.location.pathname);
-    showStep('auth-step-setpw');
-    openModal(authModal);
-}
 
 // Auto-refresh token if expired
 async function ensureValidToken() {
@@ -437,32 +431,6 @@ async function ensureValidToken() {
 
 ensureValidToken();
 
-// Step 3: set password (optional)
-document.getElementById('auth-setpw-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const password = document.getElementById('auth-new-password').value;
-    const btn = form.querySelector('button[type="submit"]');
-    formError(form, '');
-    setBtnLoading(btn, true, 'Saving password');
-    try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/auth/set-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ password }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Failed to set password');
-        closeModal(authModal);
-    } catch (err) {
-        formError(form, err.message);
-    } finally {
-        setBtnLoading(btn, false, 'Save password');
-    }
-});
-
-document.getElementById('auth-skip-btn')?.addEventListener('click', () => closeModal(authModal));
 
 // Preload images then initialize everything
 preloadImages().then(() => {
