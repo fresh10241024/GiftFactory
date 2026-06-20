@@ -83,6 +83,10 @@ export async function generateAnalysisPlan(sessionId, { onRetry } = {}) {
     return fetchWithRetry(`/sessions/${sessionId}/plan`, { method: 'POST', headers: authHeader() }, { retries: 3, delayMs: 2000, onRetry });
 }
 
+export async function getPlanStatus(sessionId) {
+    return fetchApi(`/sessions/${sessionId}/plan`, { headers: authHeader() });
+}
+
 export async function startGeneratingGift(sessionId) {
     return fetchWithRetry(`/sessions/${sessionId}/generate`, { method: 'POST', headers: authHeader() }, { retries: 2, delayMs: 1500 });
 }

@@ -220,47 +220,42 @@ async def upload_image(session_id: str, file: UploadFile = File(...), authorizat
 
 
 @router.post("/{session_id}/plan")
-async def create_plan(session_id: str, authorization: Optional[str] = Header(None)):
+async def create_plan(session_id: str, background_tasks: BackgroundTasks, authorization: Optional[str] = Header(None)):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
     _check_session_access(session, _get_user_id(authorization))
-    if not session.get("style_summary"):
-        raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
+    state = session.get("style_summary") or {}
+    if not state.get("recipient_name"):
+        return {"status": "not_ready", "detail": "Please complete the chat first"}
 
-    state = session.get("style_summary", {})
-
-    # 已有缓存的 plan，直接用，不重复调 AI
+    # Already cached — return immediately
     if state.get("_plan") and state.get("_analysis"):
-        plan = state["_plan"]
-        frontend_plan = state["_analysis"]
-        return {"plan": frontend_plan, "_full_plan": plan}
+        return {"status": "done", "plan": state["_analysis"]}
 
-    prompt = PLAN_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
+    # Mark as planning so client can poll
+    supabase.table("sessions").update({"status": "planning"}).eq("id", session_id).execute()
+    background_tasks.add_task(_run_plan, session_id, state)
+    return {"status": "processing"}
 
-    def _generate_plan(prompt):
-        # 20s timeout so Railway's 30s proxy limit isn't hit before fallback
-        ds = OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=20.0) if settings.deepseek_api_key else None
+
+def _run_plan(session_id: str, state: dict):
+    try:
+        prompt = PLAN_PROMPT.format(state=json.dumps(state, ensure_ascii=False))
+
+        ds = OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=25.0) if settings.deepseek_api_key else None
+        plan_text = None
         if ds:
             try:
-                r = ds.chat.completions.create(
-                    model="deepseek-chat",
-                    max_tokens=3000,
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                return r.choices[0].message.content.strip()
+                r = ds.chat.completions.create(model="deepseek-chat", max_tokens=3000, messages=[{"role": "user", "content": prompt}])
+                plan_text = r.choices[0].message.content.strip()
             except Exception as e:
-                print(f"[deepseek plan] failed ({e}), falling back to Claude Haiku")
-        r = client.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return r.content[0].text.strip()
+                print(f"[plan] deepseek failed ({e}), falling back to Claude Haiku")
+        if not plan_text:
+            r = client.messages.create(model="claude-haiku-4-5", max_tokens=2000, messages=[{"role": "user", "content": prompt}])
+            plan_text = r.content[0].text.strip()
 
-    try:
-        plan_text = _generate_plan(prompt)
         match = re.search(r"\{[\s\S]*\}", plan_text)
         raw = match.group(0) if match else plan_text
         open_braces = raw.count('{') - raw.count('}')
@@ -269,32 +264,45 @@ async def create_plan(session_id: str, authorization: Optional[str] = Header(Non
             raw += '"'
         raw += ']' * open_brackets + '}' * open_braces
         plan = json.loads(raw)
+
+        scenes = plan.get("scenes", [])
+        recipient = state.get("recipient_name", "Ta")
+        s2 = next((s for s in scenes if s.get("act") == 2), scenes[1] if len(scenes) > 1 else {})
+        s3 = next((s for s in scenes if s.get("act") == 3), scenes[2] if len(scenes) > 2 else {})
+        style_name = plan.get("style_archetype", "").split(".")[-1].strip() if plan.get("style_archetype") else ""
+        frontend_plan = {
+            "title1": s2.get("headline") or f"About {recipient}",
+            "text1": s2.get("body") or "",
+            "title2": s3.get("headline") or "That Moment",
+            "text2": s3.get("body") or "",
+            "title3": plan.get("concept") or "This Gift",
+            "text3": plan.get("atmosphere") or f"A {style_name} style gift for your story.",
+        }
+
+        supabase.table("sessions").update({
+            "style_summary": {**state, "_plan": plan, "_analysis": frontend_plan},
+            "status": "ready"
+        }).eq("id", session_id).execute()
+        print(f"[plan] {session_id} done")
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Plan generation failed: {str(e)}")
+        print(f"[plan] {session_id} error: {e}")
+        supabase.table("sessions").update({"status": "plan_error"}).eq("id", session_id).execute()
 
-    # Build analysis display content
-    scenes = plan.get("scenes", [])
-    recipient = state.get("recipient_name", "Ta")
-    s2 = next((s for s in scenes if s.get("act") == 2), scenes[1] if len(scenes) > 1 else {})
-    s3 = next((s for s in scenes if s.get("act") == 3), scenes[2] if len(scenes) > 2 else {})
-    style_name = plan.get("style_archetype", "").split(".")[-1].strip() if plan.get("style_archetype") else ""
 
-    frontend_plan = {
-        "title1": s2.get("headline") or f"About {recipient}",
-        "text1": s2.get("body") or "",
-        "title2": s3.get("headline") or "That Moment",
-        "text2": s3.get("body") or "",
-        "title3": plan.get("concept") or "This Gift",
-        "text3": plan.get("atmosphere") or f"This is a {style_name} style gift, born for your story.",
-    }
-
-    # Store plan and analysis results in session for later display
-    supabase.table("sessions").update({
-        "style_summary": {**state, "_plan": plan, "_analysis": frontend_plan},
-        "status": "ready"
-    }).eq("id", session_id).execute()
-
-    return {"plan": frontend_plan, "_full_plan": plan}
+@router.get("/{session_id}/plan")
+async def get_plan(session_id: str, authorization: Optional[str] = Header(None)):
+    result = supabase.table("sessions").select("status, style_summary, user_id").eq("id", session_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    row = result.data[0]
+    _check_session_access(row, _get_user_id(authorization))
+    status = row["status"]
+    state = row.get("style_summary") or {}
+    if status == "plan_error":
+        return {"status": "error", "detail": "Plan generation failed, please retry"}
+    if state.get("_analysis"):
+        return {"status": "done", "plan": state["_analysis"]}
+    return {"status": "processing"}
 
 
 def extract_html(text: str) -> str:
