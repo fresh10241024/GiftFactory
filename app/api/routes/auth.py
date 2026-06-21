@@ -28,23 +28,26 @@ async def signin(body: AuthRequest):
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-    # Attempt registration
+    # Attempt registration via standard sign_up (no admin key needed)
     try:
-        reg = supabase.auth.admin.create_user({
+        reg = supabase.auth.sign_up({
             "email": body.email,
             "password": body.password,
-            "email_confirm": True
         })
-        if reg.user:
+        if reg.user and reg.session:
+            # Email confirmation disabled in Supabase → session returned immediately
+            return {**_session_response(reg), "action": "register"}
+        if reg.user and not reg.session:
+            # Email confirmation is ON — auto-login after signup
             res = supabase.auth.sign_in_with_password({
                 "email": body.email,
                 "password": body.password
             })
-            return {**_session_response(res), "action": "register"}
+            if res.session:
+                return {**_session_response(res), "action": "register"}
     except Exception as e:
         msg = str(e).lower()
-        # Email already exists → fall through to login
-        if "already registered" not in msg and "already been registered" not in msg and "user already registered" not in msg:
+        if "already registered" not in msg and "user already registered" not in msg:
             raise HTTPException(status_code=400, detail="Could not create account, please try again")
 
     # Email exists → try login
