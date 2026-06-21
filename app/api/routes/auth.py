@@ -24,44 +24,30 @@ def _session_response(res):
 
 @router.post("/signin")
 async def signin(body: AuthRequest):
-    """Try register first; if email already exists, fall back to login."""
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-    # Attempt registration via standard sign_up (no admin key needed)
+    # Try registration — only return early if we get a live session back
     try:
-        reg = supabase.auth.sign_up({
-            "email": body.email,
-            "password": body.password,
-        })
+        reg = supabase.auth.sign_up({"email": body.email, "password": body.password})
         if reg.user and reg.session:
-            # Email confirmation disabled in Supabase → session returned immediately
             return {**_session_response(reg), "action": "register"}
-        if reg.user and not reg.session:
-            # Email confirmation is ON — auto-login after signup
-            res = supabase.auth.sign_in_with_password({
-                "email": body.email,
-                "password": body.password
-            })
-            if res.session:
-                return {**_session_response(res), "action": "register"}
-    except Exception as e:
-        msg = str(e).lower()
-        if "already registered" not in msg and "user already registered" not in msg:
-            raise HTTPException(status_code=400, detail="Could not create account, please try again")
+        # No session: either email confirmation required or existing email — fall through to login
+    except Exception:
+        pass  # Any error (including "already registered") → fall through to login
 
-    # Email exists → try login
+    # Login (also handles: existing user, or newly registered user when confirmation is OFF)
     try:
-        res = supabase.auth.sign_in_with_password({
-            "email": body.email,
-            "password": body.password
-        })
+        res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
         if res.session:
             return {**_session_response(res), "action": "login"}
         raise HTTPException(status_code=401, detail="Incorrect password")
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        msg = str(e).lower()
+        if "not confirmed" in msg or "email" in msg:
+            raise HTTPException(status_code=400, detail="Please check your email to confirm your account first")
         raise HTTPException(status_code=401, detail="Incorrect password")
 
 
