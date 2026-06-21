@@ -27,16 +27,25 @@ async def signin(body: AuthRequest):
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-    # Try registration — only return early if we get a live session back
+    # Try to create user via admin API (bypasses email confirmation entirely)
     try:
-        reg = supabase.auth.sign_up({"email": body.email, "password": body.password})
-        if reg.user and reg.session:
-            return {**_session_response(reg), "action": "register"}
-        # No session: either email confirmation required or existing email — fall through to login
-    except Exception:
-        pass  # Any error (including "already registered") → fall through to login
+        reg = supabase.auth.admin.create_user({
+            "email": body.email,
+            "password": body.password,
+            "email_confirm": True,  # mark email as confirmed immediately
+        })
+        if reg.user:
+            # New user created — now sign in to get a session
+            res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+            if res.session:
+                return {**_session_response(res), "action": "register"}
+    except Exception as e:
+        msg = str(e).lower()
+        if "already registered" not in msg and "already been registered" not in msg and "duplicate" not in msg and "exists" not in msg:
+            # Unexpected error — still try login in case user already exists
+            pass
 
-    # Login (also handles: existing user, or newly registered user when confirmation is OFF)
+    # User already exists → login
     try:
         res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
         if res.session:
@@ -44,10 +53,7 @@ async def signin(body: AuthRequest):
         raise HTTPException(status_code=401, detail="Incorrect password")
     except HTTPException:
         raise
-    except Exception as e:
-        msg = str(e).lower()
-        if "not confirmed" in msg or "email" in msg:
-            raise HTTPException(status_code=400, detail="Please check your email to confirm your account first")
+    except Exception:
         raise HTTPException(status_code=401, detail="Incorrect password")
 
 
