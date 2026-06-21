@@ -65,6 +65,13 @@ async def signin(body: AuthRequest):
         raise HTTPException(status_code=401, detail="Incorrect password")
 
 
+@router.post("/login")
+@router.post("/register")
+async def login_or_register(body: AuthRequest):
+    """Alias endpoints for old frontend — delegates to signin."""
+    return await signin(body)
+
+
 @router.post("/refresh")
 async def refresh(body: RefreshRequest):
     try:
