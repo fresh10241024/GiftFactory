@@ -77,14 +77,16 @@ export class ChatInteraction {
             }
         }
 
-        // Not logged in: prompt to log in
-        this.questionEl.textContent = 'Please log in first to create a gift.';
-        this.answerBtn.style.display = 'none';
-        const hint = document.createElement('a');
-        hint.href = './index.html';
-        hint.textContent = 'Go to login →';
-        hint.style.cssText = 'color:rgba(255,255,255,0.6);font-size:0.9rem;margin-top:16px;display:block;text-align:center';
-        this.questionEl.insertAdjacentElement('afterend', hint);
+        // Not logged in: create anonymous session
+        try {
+            const res = await createSession();
+            this.sessionId = res.session_id;
+            localStorage.setItem('chat_session_id', this.sessionId);
+        } catch (err) {
+            console.error("Anonymous session creation failed:", err);
+            this.questionEl.textContent = 'Failed to start session, please refresh and try again.';
+            this.answerBtn.style.display = 'none';
+        }
     }
 
     initPanel() {

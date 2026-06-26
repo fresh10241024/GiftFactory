@@ -412,15 +412,8 @@ const tryForFreeBtn = document.getElementById('try-for-free-btn');
 if (tryForFreeBtn) {
     tryForFreeBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
-        if (token) {
-            localStorage.removeItem('chat_session_id');
-            window.location.href = './chat.html';
-        } else {
-            localStorage.setItem('redirect_to_chat_after_login', 'true');
-            showStep('auth-step-email');
-            openModal(authModal);
-        }
+        localStorage.removeItem('chat_session_id');
+        window.location.href = './chat.html';
     });
 }
 
