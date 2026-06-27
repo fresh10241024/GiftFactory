@@ -150,12 +150,7 @@ export class ChatInteraction {
             this.adjustSize();
         });
 
-        this.input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.submitAnswer();
-            }
-        });
+        // Enter = newline (natural textarea behavior), only Send button submits
 
         // Prevent textarea blur when clicking send button
         this.sendBtn.addEventListener('mousedown', (e) => {
@@ -259,33 +254,33 @@ export class ChatInteraction {
         this.sendBtn.classList.toggle('is-visible', hasText);
 
         const minSize = 200;
-        const maxWidth = 420;
-        const hPad = 80;  // horizontal padding inside circle
-        const vPad = 90;  // vertical padding (leaves room for send button)
+        const maxSize = 560;
+        // Inner content width = ratio × diameter (preserves circle-edge clearance)
+        const ratio = 0.62;
+        // Inscribed-rectangle formula: D ≥ H / √(1 − ratio²)
+        const denominator = Math.sqrt(1 - ratio * ratio); // ≈ 0.785
 
-        // Measure single-line text width via hidden span
+        // Phase 1: size driven by single-line text width
         this.measure.textContent = text || '|';
-        const textWidth = this.measure.offsetWidth;
-        const neededByText = Math.max(minSize, textWidth + hPad);
+        const textW = this.measure.offsetWidth;
+        let size = Math.min(maxSize, Math.max(minSize, textW / ratio));
 
-        if (neededByText <= maxWidth) {
-            // Circle mode: text fits on one line, grow circle equally
-            const size = neededByText;
-            this.answerBtn.style.width = `${size}px`;
-            this.answerBtn.style.height = `${size}px`;
-            this.input.style.width = `${size - hPad}px`;
-            this.input.style.height = 'auto';
-        } else {
-            // Capsule mode: cap width, let text wrap, grow height
-            const innerW = maxWidth - hPad;
-            this.input.style.width = `${innerW}px`;
-            this.input.style.height = 'auto';
-            const scrollH = this.input.scrollHeight;
-            const finalHeight = Math.max(maxWidth, scrollH + vPad);
-            this.answerBtn.style.width = `${maxWidth}px`;
-            this.answerBtn.style.height = `${finalHeight}px`;
-            this.input.style.height = `${scrollH}px`;
-        }
+        // Phase 2: measure how tall the wrapped text is at this width
+        this.input.style.width = `${size * ratio}px`;
+        this.input.style.height = 'auto';
+        const rawScrollH = this.input.scrollHeight;
+        // Add clearance so text doesn't overlap the Send button
+        const paddedH = rawScrollH + 60;
+
+        // Phase 3: grow circle so the text height also fits — width always equals height
+        const sizeForHeight = Math.min(maxSize, paddedH / denominator);
+        size = Math.max(size, sizeForHeight);
+
+        // Apply — width === height → perfect circle at every size
+        this.input.style.width = `${size * ratio}px`;
+        this.input.style.height = `${rawScrollH}px`;
+        this.answerBtn.style.width = `${size}px`;
+        this.answerBtn.style.height = `${size}px`;
     }
 
     async submitAnswer() {
