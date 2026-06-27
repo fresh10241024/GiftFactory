@@ -1,4 +1,5 @@
 import { sendChatMessage, uploadImage, createSession, getMySessions } from './api.js';
+import { ScreenshotFeature } from './screenshot.js';
 
 export class ChatInteraction {
     constructor() {
@@ -325,4 +326,5 @@ export class ChatInteraction {
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new ChatInteraction();
+    new ScreenshotFeature();
 });

@@ -23,6 +23,12 @@
             <span id="curate-btn" style="cursor:pointer">Curate a gift</span>
         </div>
         <div class="header-right">
+            <button class="screenshot-btn" id="screenshot-btn" aria-label="Save this moment">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+            </button>
             <div class="artwork-info">
                 <span class="artwork-title">AI Generative Canvas</span>
                 <span class="artwork-date">Engine Active</span>
@@ -31,6 +37,23 @@
             <img src="/1.webp" alt="Artwork" class="artwork-thumb">
         </div>
     </header>
+
+    <!-- Screenshot panel (positioned via JS) -->
+    <div class="screenshot-panel" id="screenshot-panel" style="display:none;">
+        <p class="screenshot-panel__title" data-ss-i18n="ss-title">Save this moment</p>
+        <p class="screenshot-panel__subtitle" data-ss-i18n="ss-subtitle">Keep it as a memory, share with a friend, or post it.</p>
+        <div class="screenshot-panel__sizes">
+            <button class="size-option is-active" data-size="original">
+                <span class="size-ratio" data-ss-i18n="ss-original">Original</span>
+                <span class="size-label" data-ss-i18n="ss-original-sub">Current size</span>
+            </button>
+            <button class="size-option" data-size="3:4">
+                <span class="size-ratio">3 : 4</span>
+                <span class="size-label" data-ss-i18n="ss-34-sub">Portrait card</span>
+            </button>
+        </div>
+        <button class="screenshot-panel__save" id="save-image-btn" data-ss-i18n="ss-save">Save Image</button>
+    </div>
 
     <main class="chat-container">
         <div class="chat-interaction">
