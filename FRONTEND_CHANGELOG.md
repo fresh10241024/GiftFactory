@@ -41,6 +41,31 @@ PATCH /api/user/preferences
 
 ---
 
+## [2026-06-27] Chat 输入球优化（自动换行 + Send 按钮 + 等比圆生长）
+
+### 改动内容
+
+- **修改**：`<input type="text">` → `<textarea>`，支持多行输入与自动换行
+- **修改**：输入球生长算法改为等比正圆（内切矩形公式），最大直径 420px → 560px
+- **新增**：Send ↵ 按钮，有文字时淡入显示于球体底部
+- **移除**：回车发送逻辑；Enter 现在仅换行，发送只能点 Send 按钮
+- **文件改动**：
+  - `fronted.hy/src/chat.html` — textarea 替换 input，新增 send-btn 元素
+  - `fronted.hy/src/styles/chat.css` — textarea 样式、send-btn 样式、border-radius 改为 9999px
+  - `fronted.hy/src/scripts/chat.js` — 重写 adjustSize()，新增 sendBtn 事件处理
+
+### 当前实现逻辑
+
+- 圆形生长分三阶段：① 单行文字宽度决定初始圆径 → ② 测量换行后文字高度 → ③ 用公式 `D ≥ H / √(1 − ratio²)` 确保文字内切于圆，始终保持 width === height
+- Send 按钮用 `mousedown preventDefault` 阻止 textarea 失焦竞态问题
+- Shift+Enter 换行，Enter 也换行（textarea 默认行为）
+
+### 预留后端接口
+
+无新增后端接口需求，此次为纯前端交互优化。
+
+---
+
 ## 记录模板（每次复制使用）
 
 ```
