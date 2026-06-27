@@ -189,7 +189,7 @@ export class ScreenshotFeature {
         brandEl.textContent = 'GiftFactory';
         Object.assign(brandEl.style, {
             color:         'rgba(255,255,255,0.7)',
-            fontFamily:    'Arial, sans-serif',
+            fontFamily:    '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif',
             fontSize:      '14px',
             letterSpacing: '0.01em',
         });
@@ -226,7 +226,7 @@ export class ScreenshotFeature {
         q.textContent = questionText;
         Object.assign(q.style, {
             color:      '#ffffff',
-            fontFamily: 'Times, serif',
+            fontFamily: 'Times, "STSong", "SimSun", "Songti SC", serif',
             fontSize:   qFontPx + 'px',
             lineHeight: '1.35',
             textAlign:  'center',
@@ -256,7 +256,7 @@ export class ScreenshotFeature {
             ans.textContent = answerText;
             Object.assign(ans.style, {
                 color:      '#ffffff',
-                fontFamily: 'Arial, sans-serif',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", Arial, sans-serif',
                 fontSize:   ansFontPx + 'px',
                 textAlign:  'center',
                 lineHeight: '1.55',
@@ -275,7 +275,7 @@ export class ScreenshotFeature {
         wm.textContent = 'GIFTFACTORY';
         Object.assign(wm.style, {
             color:         'rgba(255,255,255,0.2)',
-            fontFamily:    'Arial, sans-serif',
+            fontFamily:    '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif',
             fontSize:      '10px',
             letterSpacing: '0.14em',
             margin:        '0',
