@@ -110,8 +110,14 @@ export class ScreenshotFeature {
     }
 
     async captureOriginal() {
+        // Swap "Curate a gift" → "GiftFactory" as brand mark
+        const curateBtn = document.getElementById('curate-btn');
+        const originalText = curateBtn?.textContent;
+        if (curateBtn) curateBtn.textContent = 'GiftFactory';
+
+        // Keep header visible; only hide action controls
         const toHide = [
-            document.querySelector('.chat-header'),
+            this.btn,
             document.getElementById('upload-button'),
             document.querySelector('.finish-chat-wrapper'),
             document.querySelector('.uploaded-gallery'),
@@ -121,7 +127,7 @@ export class ScreenshotFeature {
         this.closePanel();
         toHide.forEach(el => { el.style.visibility = 'hidden'; });
 
-        // Brief pause so panel close animation doesn't appear in shot
+        // Wait for panel close animation to finish before capturing
         await new Promise(r => setTimeout(r, 280));
 
         try {
@@ -134,6 +140,7 @@ export class ScreenshotFeature {
             this.download(canvas);
         } finally {
             toHide.forEach(el => { el.style.visibility = ''; });
+            if (curateBtn && originalText !== undefined) curateBtn.textContent = originalText;
         }
     }
 
