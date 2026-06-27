@@ -18,12 +18,16 @@
 <body class="loading">
   <header class="frame">
     <div class="frame__infos">
-      <h1>GiftFactory: AI-Curated Interactive Web Gifts</h1>
+      <h1 data-i18n="site-title">GiftFactory: AI-Curated Interactive Web Gifts</h1>
     </div>
     <div class="frame__auth-buttons">
-      <a href="./dashboard.html" id="my-gifts-link" style="display:none;color:inherit;text-decoration:none;opacity:0.7;font-size:0.9rem;margin-right:20px">My Gifts</a>
+      <a href="./dashboard.html" id="my-gifts-link" data-i18n="my-gifts" style="display:none;color:inherit;text-decoration:none;opacity:0.7;font-size:0.9rem;margin-right:20px">My Gifts</a>
+      <button class="lang-toggle" id="lang-toggle" aria-label="Switch language" data-active="en">
+        <span class="lang-toggle__label" data-lang-opt="en">EN</span>
+        <span class="lang-toggle__label" data-lang-opt="zh">中文</span>
+      </button>
       <button class="button--login" id="open-auth-modal">
-        <span class="roll-text"><span class="roll-text-inner" data-text="Log in / Sign up">Log in / Sign up</span></span>
+        <span class="roll-text"><span class="roll-text-inner" data-text="Log in / Sign up" data-i18n="login-btn">Log in / Sign up</span></span>
       </button>
     </div>
   </header>
@@ -31,18 +35,17 @@
     <section class="block block--intro">
       <figure class="media">
         <img class="media__image" src="../8.webp" alt="Image 8" />
-        <figcaption class="media__caption">Personal Website Gift Made for Someone Special
-A custom website gift for someone special.</figcaption>
+        <figcaption class="media__caption" data-i18n="hero-caption">Personal Website Gift Made for Someone Special. A custom website gift for someone special.</figcaption>
       </figure>
     </section>
     <section class="block block--main">
       <div class="block__wrapper">
         <div class="content">
-          <h2 class="content__title">Custom Website Gift</h2>
-          <p class="content__description">
+          <h2 class="content__title" data-i18n="content-title" data-i18n-silent>Custom Website Gift</h2>
+          <p class="content__description" data-i18n="content-desc" data-i18n-silent>
             No more templates. Freeze unique memories in an interactive page built just for them.
           </p>
-          <a class="content__button button--primary" id="try-for-free-btn" href="#">Try for free</a>
+          <a class="content__button button--primary" id="try-for-free-btn" href="#" data-i18n="try-btn" data-i18n-silent>Try for free</a>
         </div>
         <div class="gallery">
           <ul class="gallery__grid">
@@ -95,12 +98,12 @@ A custom website gift for someone special.</figcaption>
 
       <!-- Unified Login / Register -->
       <div id="auth-step-main">
-        <h2 style="margin:0 0 6px;font-size:1.3rem;font-weight:700">Welcome</h2>
-        <p style="margin:0 0 20px;font-size:0.85rem;opacity:0.5">Enter your email and password — we'll log you in or create your account automatically.</p>
+        <h2 style="margin:0 0 6px;font-size:1.3rem;font-weight:700" data-i18n="auth-welcome">Welcome</h2>
+        <p style="margin:0 0 20px;font-size:0.85rem;opacity:0.5" data-i18n="auth-subtitle">Enter your email and password — we'll log you in or create your account automatically.</p>
         <form id="auth-signin-form">
-          <input type="email" id="signin-email" placeholder="Email" required autocomplete="email">
-          <input type="password" id="signin-password" placeholder="Password (min 6 chars)" minlength="6" required autocomplete="current-password">
-          <button type="submit">Continue</button>
+          <input type="email" id="signin-email" placeholder="Email" required autocomplete="email" data-i18n-placeholder="signin-email">
+          <input type="password" id="signin-password" placeholder="Password (min 6 chars)" minlength="6" required autocomplete="current-password" data-i18n-placeholder="signin-password">
+          <button type="submit" data-i18n="auth-submit">Continue</button>
           <p class="form-error"></p>
         </form>
       </div>
@@ -112,7 +115,7 @@ A custom website gift for someone special.</figcaption>
           <button type="submit" style="display:none"></button>
           <p class="form-error"></p>
         </form>
-        <button id="auth-skip-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit">Skip, maybe later</button>
+        <button id="auth-skip-btn" style="background:none;border:none;opacity:0.5;cursor:pointer;margin-top:12px;font-size:0.85rem;color:inherit" data-i18n="auth-skip">Skip, maybe later</button>
       </div>
     </div>
   </div>

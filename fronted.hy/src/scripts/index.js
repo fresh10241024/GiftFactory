@@ -417,6 +417,118 @@ if (tryForFreeBtn) {
 }
 
 
+/* -------- i18n Language Switch -------- */
+const TRANSLATIONS = {
+    en: {
+        'site-title':    'GiftFactory: AI-Curated Interactive Web Gifts',
+        'hero-caption':  'Personal Website Gift Made for Someone Special. A custom website gift for someone special.',
+        'content-title': 'Custom Website Gift',
+        'content-desc':  'No more templates. Freeze unique memories in an interactive page built just for them.',
+        'try-btn':       'Try for free',
+        'my-gifts':      'My Gifts',
+        'login-btn':     'Log in / Sign up',
+        'auth-welcome':  'Welcome',
+        'auth-subtitle': "Enter your email and password — we'll log you in or create your account automatically.",
+        'auth-submit':   'Continue',
+        'auth-skip':     'Skip, maybe later',
+        'signin-email':    'Email',
+        'signin-password': 'Password (min 6 chars)',
+    },
+    zh: {
+        'site-title':    'GiftFactory：AI 策划专属互动礼物网站',
+        'hero-caption':  '为最特别的人定制专属礼物网站，一份为他们量身打造的互动网页礼物。',
+        'content-title': '定制礼物网站',
+        'content-desc':  '不再千篇一律。将珍贵回忆定格在一个专属互动页面里。',
+        'try-btn':       '免费体验',
+        'my-gifts':      '我的礼物',
+        'login-btn':     '登录 / 注册',
+        'auth-welcome':  '欢迎',
+        'auth-subtitle': '输入邮箱和密码 — 我们将自动登录或为您创建账号。',
+        'auth-submit':   '继续',
+        'auth-skip':     '跳过，稍后设置',
+        'signin-email':    '邮箱',
+        'signin-password': '密码（至少 6 位）',
+    },
+};
+
+let currentLang = localStorage.getItem('lang') || 'en';
+
+function updateAllTexts(lang) {
+    const t = TRANSLATIONS[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (!t[key]) return;
+        if (el.type === 'submit' && el.disabled) return;
+        el.textContent = t[key];
+        if (el.dataset.text !== undefined) el.dataset.text = t[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (t[key]) el.placeholder = t[key];
+    });
+}
+
+function applyLanguage(lang, animate = true) {
+    if (!TRANSLATIONS[lang]) return;
+
+    const toggle = document.getElementById('lang-toggle');
+    if (toggle) toggle.dataset.active = lang;
+
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+
+    const t = TRANSLATIONS[lang];
+
+    // Silently update GSAP-scroll-controlled elements to avoid opacity conflicts
+    document.querySelectorAll('[data-i18n-silent]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (t[key]) el.textContent = t[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (t[key]) el.placeholder = t[key];
+    });
+
+    const animated = [...document.querySelectorAll('[data-i18n]:not([data-i18n-silent])')];
+
+    if (!animate || animated.length === 0) {
+        animated.forEach(el => {
+            const key = el.dataset.i18n;
+            if (!t[key] || (el.type === 'submit' && el.disabled)) return;
+            el.textContent = t[key];
+            if (el.dataset.text !== undefined) el.dataset.text = t[key];
+        });
+        return;
+    }
+
+    gsap.to(animated, {
+        opacity: 0,
+        y: -7,
+        duration: 0.18,
+        stagger: 0.025,
+        ease: 'power2.in',
+        overwrite: 'auto',
+        onComplete() {
+            animated.forEach(el => {
+                const key = el.dataset.i18n;
+                if (!t[key] || (el.type === 'submit' && el.disabled)) return;
+                el.textContent = t[key];
+                if (el.dataset.text !== undefined) el.dataset.text = t[key];
+            });
+            gsap.fromTo(animated,
+                { opacity: 0, y: 7 },
+                { opacity: 1, y: 0, duration: 0.28, stagger: 0.025, ease: 'power2.out', overwrite: 'auto' }
+            );
+        },
+    });
+}
+
+applyLanguage(currentLang, false);
+
+document.getElementById('lang-toggle')?.addEventListener('click', () => {
+    applyLanguage(currentLang === 'en' ? 'zh' : 'en', true);
+});
+
 // Preload images then initialize everything
 preloadImages()
     .then(() => {
