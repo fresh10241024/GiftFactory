@@ -27,8 +27,8 @@ function t(key) {
 
 export class ScreenshotFeature {
     constructor() {
-        this.btn    = document.getElementById('screenshot-btn');
-        this.panel  = document.getElementById('screenshot-panel');
+        this.btn     = document.getElementById('screenshot-btn');
+        this.panel   = document.getElementById('screenshot-panel');
         this.saveBtn = document.getElementById('save-image-btn');
         this.selectedSize = 'original';
         this.isOpen = false;
@@ -111,11 +111,10 @@ export class ScreenshotFeature {
 
     async captureOriginal() {
         // Swap "Curate a gift" → "GiftFactory" as brand mark
-        const curateBtn = document.getElementById('curate-btn');
+        const curateBtn    = document.getElementById('curate-btn');
         const originalText = curateBtn?.textContent;
         if (curateBtn) curateBtn.textContent = 'GiftFactory';
 
-        // Keep header visible; only hide action controls
         const toHide = [
             this.btn,
             document.getElementById('upload-button'),
@@ -127,15 +126,14 @@ export class ScreenshotFeature {
         this.closePanel();
         toHide.forEach(el => { el.style.visibility = 'hidden'; });
 
-        // Wait for panel close animation to finish before capturing
         await new Promise(r => setTimeout(r, 280));
 
         try {
             const canvas = await html2canvas(document.body, {
-                scale: window.devicePixelRatio || 2,
-                useCORS: true,
+                scale:           window.devicePixelRatio || 2,
+                useCORS:         true,
                 backgroundColor: '#121212',
-                logging: false,
+                logging:         false,
             });
             this.download(canvas);
         } finally {
@@ -144,25 +142,32 @@ export class ScreenshotFeature {
         }
     }
 
+    // ── Layout A: bubble hero, question footnote ───────────────────────────
     async capture34() {
         const questionText = document.getElementById('current-question')?.textContent || '';
         const answerText   = document.getElementById('answer-input')?.value || '';
 
-        // Size card to viewport at 3:4 ratio
+        // Card sized to viewport at 3:4 ratio
         const cardH = Math.min(window.innerHeight * 0.9, 900);
         const cardW = Math.round(cardH * 0.75);
 
-        // Proportional type scale
-        const qLen    = questionText.length;
-        const qFontPx = qLen > 80 ? Math.round(cardW * 0.046)
-                      : qLen > 40 ? Math.round(cardW * 0.060)
-                      : Math.round(cardW * 0.075);
-        const bubbleDiam = Math.round(cardW * 0.54);
-        const ansFontPx  = Math.round(bubbleDiam * 0.073);
-        const hPad       = Math.round(cardW * 0.057);
-        const vPad       = Math.round(cardH * 0.038);
+        const hPad = Math.round(cardW * 0.057);
+        const vPad = Math.round(cardH * 0.038);
 
-        // ── Card root ─────────────────────────────────────────────
+        // Bubble is the visual hero — 65% of card width
+        const bubbleDiam = Math.round(cardW * 0.65);
+        const ansLen     = answerText.length;
+        const ansFontPx  = ansLen > 60 ? Math.round(bubbleDiam * 0.055)
+                         : ansLen > 30 ? Math.round(bubbleDiam * 0.068)
+                         : Math.round(bubbleDiam * 0.082);
+
+        // Question sits at the bottom as a small italic footnote
+        const qFontPx = Math.round(cardW * 0.036);
+
+        const CJK   = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", Arial, sans-serif';
+        const SERIF = 'Times, "STSong", "SimSun", "Songti SC", serif';
+
+        // ── Card root ──────────────────────────────────────────────────────
         const card = document.createElement('div');
         Object.assign(card.style, {
             width:         cardW + 'px',
@@ -175,7 +180,7 @@ export class ScreenshotFeature {
             flexShrink:    '0',
         });
 
-        // ── Header (mirrors live page header) ────────────────────
+        // ── Header: GiftFactory | AI Canvas info ───────────────────────────
         const hdr = document.createElement('div');
         Object.assign(hdr.style, {
             display:        'flex',
@@ -188,53 +193,41 @@ export class ScreenshotFeature {
         const brandEl = document.createElement('span');
         brandEl.textContent = 'GiftFactory';
         Object.assign(brandEl.style, {
-            color:         'rgba(255,255,255,0.7)',
-            fontFamily:    '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif',
-            fontSize:      '14px',
-            letterSpacing: '0.01em',
+            color: 'rgba(255,255,255,0.7)', fontFamily: CJK, fontSize: '14px', letterSpacing: '0.01em',
         });
 
         const infoEl = document.createElement('div');
         Object.assign(infoEl.style, { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' });
-        [['AI Generative Canvas', 'rgba(255,255,255,0.55)'],
-         ['Engine Active',        'rgba(255,255,255,0.3)'],
-         ['Digital Art Edition',  'rgba(255,255,255,0.3)'],
+        [
+            ['AI Generative Canvas', 'rgba(255,255,255,0.55)'],
+            ['Engine Active',        'rgba(255,255,255,0.3)'],
+            ['Digital Art Edition',  'rgba(255,255,255,0.3)'],
         ].forEach(([text, color]) => {
             const s = document.createElement('span');
             s.textContent = text;
-            Object.assign(s.style, { color, fontFamily: 'Arial, sans-serif', fontSize: '11px' });
+            Object.assign(s.style, { color, fontFamily: CJK, fontSize: '11px' });
             infoEl.appendChild(s);
         });
 
         hdr.appendChild(brandEl);
         hdr.appendChild(infoEl);
 
-        // ── Content (question + bubble, vertically centered) ──────
+        // ── Content: bubble fills upper zone, question is bottom footnote ──
         const content = document.createElement('div');
         Object.assign(content.style, {
             flex:           '1',
             display:        'flex',
             flexDirection:  'column',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
             alignItems:     'center',
-            padding:        `16px ${Math.round(cardW * 0.085)}px`,
-            gap:            `${Math.round(cardH * 0.048)}px`,
+            padding:        `${Math.round(cardH * 0.04)}px ${hPad}px ${Math.round(cardH * 0.03)}px`,
             boxSizing:      'border-box',
         });
 
-        const q = document.createElement('h2');
-        q.textContent = questionText;
-        Object.assign(q.style, {
-            color:      '#ffffff',
-            fontFamily: 'Times, "STSong", "SimSun", "Songti SC", serif',
-            fontSize:   qFontPx + 'px',
-            lineHeight: '1.35',
-            textAlign:  'center',
-            margin:     '0',
-            fontWeight: 'normal',
-            width:      '100%',
-            wordBreak:  'break-word',
-            overflow:   'hidden',
+        // Bubble zone: flex:1 expands to fill upper area, bubble centered within
+        const bubbleWrap = document.createElement('div');
+        Object.assign(bubbleWrap.style, {
+            flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%',
         });
 
         const bubble = document.createElement('div');
@@ -246,9 +239,10 @@ export class ScreenshotFeature {
             display:        'flex',
             justifyContent: 'center',
             alignItems:     'center',
-            padding:        '28px',
+            padding:        Math.round(bubbleDiam * 0.1) + 'px',
             boxSizing:      'border-box',
             flexShrink:     '0',
+            overflow:       'hidden',
         });
 
         if (answerText) {
@@ -256,10 +250,11 @@ export class ScreenshotFeature {
             ans.textContent = answerText;
             Object.assign(ans.style, {
                 color:      '#ffffff',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", Arial, sans-serif',
+                fontFamily: CJK,
                 fontSize:   ansFontPx + 'px',
+                fontWeight: 'normal',
                 textAlign:  'center',
-                lineHeight: '1.55',
+                lineHeight: '1.6',
                 margin:     '0',
                 wordBreak:  'break-word',
                 overflow:   'hidden',
@@ -267,15 +262,47 @@ export class ScreenshotFeature {
             bubble.appendChild(ans);
         }
 
-        content.appendChild(q);
-        content.appendChild(bubble);
+        bubbleWrap.appendChild(bubble);
 
-        // ── Watermark ─────────────────────────────────────────────
+        // Footnote zone: thin divider + question text (small, italic, muted)
+        const footnote = document.createElement('div');
+        Object.assign(footnote.style, {
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: '14px', width: '100%', flexShrink: '0',
+        });
+
+        const divider = document.createElement('div');
+        Object.assign(divider.style, {
+            width: '100%', height: '1px', background: 'rgba(255,255,255,0.1)',
+        });
+
+        const q = document.createElement('p');
+        q.textContent = questionText;
+        Object.assign(q.style, {
+            color:      'rgba(255,255,255,0.45)',
+            fontFamily: SERIF,
+            fontSize:   qFontPx + 'px',
+            fontStyle:  'italic',
+            fontWeight: 'normal',
+            lineHeight: '1.5',
+            textAlign:  'center',
+            margin:     '0',
+            width:      '100%',
+            wordBreak:  'break-word',
+        });
+
+        footnote.appendChild(divider);
+        footnote.appendChild(q);
+
+        content.appendChild(bubbleWrap);
+        content.appendChild(footnote);
+
+        // ── Watermark ──────────────────────────────────────────────────────
         const wm = document.createElement('p');
         wm.textContent = 'GIFTFACTORY';
         Object.assign(wm.style, {
-            color:         'rgba(255,255,255,0.2)',
-            fontFamily:    '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif',
+            color:         'rgba(255,255,255,0.18)',
+            fontFamily:    CJK,
             fontSize:      '10px',
             letterSpacing: '0.14em',
             margin:        '0',
@@ -288,7 +315,7 @@ export class ScreenshotFeature {
         card.appendChild(content);
         card.appendChild(wm);
 
-        // ── On-screen overlay (fonts load correctly when visible) ─
+        // ── On-screen overlay (fonts render correctly when element is visible) ─
         const overlay = document.createElement('div');
         Object.assign(overlay.style, {
             position:       'fixed',
@@ -305,13 +332,12 @@ export class ScreenshotFeature {
 
         this.closePanel();
 
-        // Two RAF cycles ensure the browser paints before capture
+        // Two RAF cycles ensure browser paints fonts before html2canvas runs
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         await new Promise(r => setTimeout(r, 80));
 
-        // html2canvas renders the full document and clips to the element's
-        // screen rect — page elements behind the overlay bleed through.
-        // Hiding body (then explicitly restoring overlay) prevents this.
+        // Hide body so page elements don't bleed into the card capture
+        // (html2canvas renders the full document and clips to element bounds)
         document.body.style.visibility = 'hidden';
         overlay.style.visibility = 'visible';
 
