@@ -93,24 +93,14 @@ A custom website gift for someone special.</figcaption>
     <div class="modal-content">
       <button class="close-button" aria-label="Close">&times;</button>
 
-      <!-- Login / Register -->
+      <!-- Unified Login / Register -->
       <div id="auth-step-main">
-        <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.1)">
-          <button id="tab-login" onclick="switchTab('login')" style="flex:1;background:none;border:none;color:#fff;padding:10px;font-size:0.9rem;cursor:pointer;border-bottom:2px solid #fff;opacity:1">Log in</button>
-          <button id="tab-register" onclick="switchTab('register')" style="flex:1;background:none;border:none;color:#fff;padding:10px;font-size:0.9rem;cursor:pointer;border-bottom:2px solid transparent;opacity:0.4">Sign up</button>
-        </div>
-
-        <form id="auth-login-form">
-          <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
-          <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
-          <button type="submit">Log in</button>
-          <p class="form-error"></p>
-        </form>
-
-        <form id="auth-register-form" style="display:none">
-          <input type="email" id="reg-email" placeholder="Email" required autocomplete="email">
-          <input type="password" id="reg-password" placeholder="Password (min 6 chars)" minlength="6" required autocomplete="new-password">
-          <button type="submit">Create account</button>
+        <h2 style="margin:0 0 6px;font-size:1.3rem;font-weight:700">Welcome</h2>
+        <p style="margin:0 0 20px;font-size:0.85rem;opacity:0.5">Enter your email and password — we'll log you in or create your account automatically.</p>
+        <form id="auth-signin-form">
+          <input type="email" id="signin-email" placeholder="Email" required autocomplete="email">
+          <input type="password" id="signin-password" placeholder="Password (min 6 chars)" minlength="6" required autocomplete="current-password">
+          <button type="submit">Continue</button>
           <p class="form-error"></p>
         </form>
       </div>

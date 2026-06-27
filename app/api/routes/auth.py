@@ -6,11 +6,7 @@ from app.db import supabase
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-class RegisterRequest(BaseModel):
-    email: str
-    password: str
-
-class LoginRequest(BaseModel):
+class AuthRequest(BaseModel):
     email: str
     password: str
 
@@ -18,55 +14,54 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
-@router.post("/register")
-async def register(body: RegisterRequest):
+def _session_response(res):
+    return {
+        "token": res.session.access_token,
+        "refresh_token": res.session.refresh_token,
+        "userId": res.user.id,
+    }
+
+
+@router.post("/signin")
+async def signin(body: AuthRequest):
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    # Try to create user via admin API (bypasses email confirmation entirely)
     try:
-        res = supabase.auth.admin.create_user({
+        reg = supabase.auth.admin.create_user({
             "email": body.email,
             "password": body.password,
-            "email_confirm": True
+            "email_confirm": True,  # mark email as confirmed immediately
         })
-        if not res.user:
-            raise HTTPException(status_code=400, detail="Registration failed")
-        # Auto login after register
-        login_res = supabase.auth.sign_in_with_password({
-            "email": body.email,
-            "password": body.password
-        })
-        return {
-            "token": login_res.session.access_token,
-            "refresh_token": login_res.session.refresh_token,
-            "userId": login_res.user.id,
-        }
-    except HTTPException:
-        raise
+        if reg.user:
+            # New user created — now sign in to get a session
+            res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+            if res.session:
+                return {**_session_response(res), "action": "register"}
     except Exception as e:
-        msg = str(e)
-        if "already registered" in msg or "already been registered" in msg or "User already registered" in msg:
-            raise HTTPException(status_code=400, detail="This email is already registered")
-        raise HTTPException(status_code=400, detail="Registration failed, please try again")
+        msg = str(e).lower()
+        if "already registered" not in msg and "already been registered" not in msg and "duplicate" not in msg and "exists" not in msg:
+            # Unexpected error — still try login in case user already exists
+            pass
 
-
-@router.post("/login")
-async def login(body: LoginRequest):
+    # User already exists → login
     try:
-        res = supabase.auth.sign_in_with_password({
-            "email": body.email,
-            "password": body.password
-        })
-        if not res.session:
-            raise HTTPException(status_code=401, detail="Incorrect email or password")
-        return {
-            "token": res.session.access_token,
-            "refresh_token": res.session.refresh_token,
-            "userId": res.user.id,
-        }
+        res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+        if res.session:
+            return {**_session_response(res), "action": "login"}
+        raise HTTPException(status_code=401, detail="Incorrect password")
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        raise HTTPException(status_code=401, detail="Incorrect password")
+
+
+@router.post("/login")
+@router.post("/register")
+async def login_or_register(body: AuthRequest):
+    """Alias endpoints for old frontend — delegates to signin."""
+    return await signin(body)
 
 
 @router.post("/refresh")
@@ -75,11 +70,7 @@ async def refresh(body: RefreshRequest):
         res = supabase.auth.refresh_session(body.refresh_token)
         if not res.session:
             raise HTTPException(status_code=401, detail="Session expired, please log in again")
-        return {
-            "token": res.session.access_token,
-            "refresh_token": res.session.refresh_token,
-            "userId": res.user.id,
-        }
+        return _session_response(res)
     except HTTPException:
         raise
     except Exception:

@@ -285,9 +285,11 @@ function closeModal(modal) {
     modal.setAttribute('aria-hidden', 'true');
 }
 function showStep(step) {
-    ['auth-step-email', 'auth-step-code', 'auth-step-setpw'].forEach(id => {
+    const map = { 'auth-step-email': 'auth-step-main' };
+    const target = map[step] || step;
+    ['auth-step-main', 'auth-step-code', 'auth-step-setpw'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = id === step ? '' : 'none';
+        if (el) el.style.display = id === target ? '' : 'none';
     });
 }
 function formError(form, msg) {
@@ -313,15 +315,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') document.querySelectorAll('.modal.is-active').forEach(closeModal);
 });
 
-window.switchTab = function(tab) {
-    const isLogin = tab === 'login';
-    document.getElementById('auth-login-form').style.display = isLogin ? '' : 'none';
-    document.getElementById('auth-register-form').style.display = isLogin ? 'none' : '';
-    document.getElementById('tab-login').style.opacity = isLogin ? '1' : '0.4';
-    document.getElementById('tab-login').style.borderBottomColor = isLogin ? '#fff' : 'transparent';
-    document.getElementById('tab-register').style.opacity = isLogin ? '0.4' : '1';
-    document.getElementById('tab-register').style.borderBottomColor = isLogin ? 'transparent' : '#fff';
-};
+window.switchTab = function() {}; // kept for compatibility
 
 function saveAuth(data, email) {
     const payload = parseJwt(data.token);
@@ -332,7 +326,6 @@ function saveAuth(data, email) {
     localStorage.setItem('userEmail', email);
     closeModal(authModal);
     updateAuthUI();
-    
     if (localStorage.getItem('redirect_to_chat_after_login') === 'true') {
         localStorage.removeItem('redirect_to_chat_after_login');
         localStorage.removeItem('chat_session_id');
@@ -340,51 +333,27 @@ function saveAuth(data, email) {
     }
 }
 
-document.getElementById('auth-login-form')?.addEventListener('submit', async (e) => {
+document.getElementById('auth-signin-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
+    const email = document.getElementById('signin-email').value.trim();
+    const password = document.getElementById('signin-password').value;
     const btn = form.querySelector('button[type="submit"]');
     formError(form, '');
-    setBtnLoading(btn, true, 'Logging in...');
+    setBtnLoading(btn, true, 'Please wait...');
     try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch('/api/auth/signin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Login failed');
+        if (!res.ok) throw new Error(data.detail || 'Sign in failed');
         saveAuth(data, email);
     } catch (err) {
         formError(form, err.message);
     } finally {
-        setBtnLoading(btn, false, 'Log in');
-    }
-});
-
-document.getElementById('auth-register-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const email = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const btn = form.querySelector('button[type="submit"]');
-    formError(form, '');
-    setBtnLoading(btn, true, 'Creating account...');
-    try {
-        const res = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Registration failed');
-        saveAuth(data, email);
-    } catch (err) {
-        formError(form, err.message);
-    } finally {
-        setBtnLoading(btn, false, 'Create account');
+        setBtnLoading(btn, false, 'Continue');
     }
 });
 
@@ -442,21 +411,22 @@ const tryForFreeBtn = document.getElementById('try-for-free-btn');
 if (tryForFreeBtn) {
     tryForFreeBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
-        if (token) {
-            localStorage.removeItem('chat_session_id');
-            window.location.href = './chat.html';
-        } else {
-            localStorage.setItem('redirect_to_chat_after_login', 'true');
-            openModal(authModal);
-        }
+        localStorage.removeItem('chat_session_id');
+        window.location.href = './chat.html';
     });
 }
 
 
 // Preload images then initialize everything
-preloadImages().then(() => {
-    document.body.classList.remove("loading") // Remove loading state from body
-    initSmoothScrolling() // Initialize smooth scrolling
-    new StickyGridScroll() // Initialize grid animation
-})
+preloadImages()
+    .then(() => {
+        document.body.classList.remove("loading")
+        initSmoothScrolling()
+        new StickyGridScroll()
+    })
+    .catch(() => {
+        // Always remove loading overlay even if images fail — otherwise the overlay blocks all clicks
+        document.body.classList.remove("loading")
+        initSmoothScrolling()
+        new StickyGridScroll()
+    })
