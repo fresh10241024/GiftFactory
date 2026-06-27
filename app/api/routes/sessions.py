@@ -207,6 +207,7 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     return {
         "reply": reply,
         "ready": ready,
+        "max_turns": turn_count >= MAX_TURNS,
         "state": merged_state,
         "mood": mood
     }
