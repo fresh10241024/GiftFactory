@@ -309,6 +309,12 @@ export class ScreenshotFeature {
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         await new Promise(r => setTimeout(r, 80));
 
+        // html2canvas renders the full document and clips to the element's
+        // screen rect — page elements behind the overlay bleed through.
+        // Hiding body (then explicitly restoring overlay) prevents this.
+        document.body.style.visibility = 'hidden';
+        overlay.style.visibility = 'visible';
+
         try {
             const canvas = await html2canvas(card, {
                 scale:           2,
@@ -318,6 +324,7 @@ export class ScreenshotFeature {
             });
             this.download(canvas);
         } finally {
+            document.body.style.visibility = '';
             document.body.removeChild(overlay);
         }
     }
