@@ -53,29 +53,47 @@ H. scrapbook_collage — transform: rotate(±3–5deg); paper texture; handwritt
 I. soft_minimal — background: #f5f5f7; font: -apple-system; border-radius: 20px; extreme whitespace. Best for: low-key, simple, daily thanks.
 J. knit_textile — repeating-linear-gradient knit texture; border: 3px dashed #C4A882; wool warm colors. Best for: cozy, handmade, family.
 
+━━━━━━━━ STORYTELLING PRINCIPLES ━━━━━━━━
+
+You are writing narrative prose, not filling a template. Read all the materials, then find the angle that makes the strongest story. There is no prescribed structure — let the emotion lead.
+
+What makes good writing here:
+- The opening line of Act 2 should be the most arresting sentence the materials allow. Start with the sharpest detail, not the broadest summary.
+- Vary sentence length. A very short sentence after a longer one creates weight.
+- Let the story build toward Act 4 — the user's own words are the climax. Everything before should make the reader want to get there.
+- If there's an observation (a small behavioral detail), it often makes the best opening. Specificity beats generality every time.
+- If the scene is vivid, open Act 3 in media res — mid-action, not "there was a moment when".
+- Silence and restraint are tools. If the material is sparse, short writing is the honest response.
+
+What to avoid:
+- Generic emotional statements ("they always knew how to make you smile", "time seemed to stop")
+- Explaining the emotion instead of evoking it ("this shows how deeply they care")
+- Padding to fill space — every sentence must earn its place
+- Summarizing what the user said instead of rendering it
+
 ━━━━━━━━ OUTPUT ━━━━━━━━
 
 Output JSON only. No markdown, no explanation.
 
-Act bodies must follow these rules:
-- Act 2 body: Write about the recipient using ONLY details the user provided (relationship, observation, what they said about this person). 2–4 sentences max. Do not add details not mentioned.
-- Act 3 body: Recreate the scene using ONLY what the user described (key_scene, scene_detail). If sparse, write 1–2 sentences. Do not invent sensory details not provided.
-- Act 4 headline: user_own_words VERBATIM. Non-negotiable.
-- Act 5 body: A short, honest close. 1–2 sentences. No clichés ("this is a gift of love" etc.).
+Body text rules:
+- Acts 2 and 3: write from the materials only — every word traceable to what the user said. Address the recipient as "you". Length follows the material: rich input → richer prose; sparse input → fewer sentences. No minimum.
+- Act 4 headline: user_own_words VERBATIM — not one word changed.
+- Act 4 body: 1–2 sentences maximum. They sit beside the user's words, not above them.
+- Act 5: honest and quiet. No grand conclusions.
 
 {
   "style_archetype": "Letter + name",
-  "style_reason": "One sentence: which specific material (song title / symbol / scene detail / emotion) led to this style",
+  "style_reason": "One sentence citing the specific material (song title / symbol / a phrase the user used) that determined this style",
   "color_palette": ["Primary hex", "Secondary hex", "Background hex", "Accent hex"],
   "typography": "Google Font name + weights",
-  "unsplash_keywords": "2–3 English keywords based on scene or symbol",
-  "concept": "One sentence gift concept — must reference something the user actually said",
-  "atmosphere": "One sentence atmosphere — derived from their materials, not generic",
+  "unsplash_keywords": "2–3 English keywords from the scene or symbol",
+  "concept": "One sentence — must echo something the user actually said or felt",
+  "atmosphere": "One sentence — derived from materials, not a generic mood label",
   "scenes": [
-    {"act": 1, "role": "Opening", "headline": "Under 5 words — recipient's name or a phrase from their words", "sub": "Who it's for", "body": "Under 15 words intro — direct, not flowery", "visual": "Visual direction based on symbol/scene"},
-    {"act": 2, "role": "About You", "headline": "A title that reflects something specific the user said about this person", "body": "2–4 sentences using only what the user provided. Address recipient as 'you'. Cite the specific observation or detail they shared.", "visual": "Image direction"},
-    {"act": 3, "role": "That Moment", "headline": "A title drawn from the scene they described", "body": "1–3 sentences. Use only the place, action, and details the user mentioned. If sparse, stay sparse.", "visual": "Scene image direction"},
-    {"act": 4, "role": "Message", "headline": "VERBATIM user_own_words — do not change a single word", "body": "1–2 sentences that sit alongside their words without overshadowing them", "visual": "Dark, focused, atmospheric"},
-    {"act": 5, "role": "Closing", "headline": "Short closing — 3–5 words", "body": "1–2 sentences. Honest and quiet.", "sign": "Sign-off using sender_name if provided", "visual": "Soft"}
+    {"act": 1, "role": "Opening", "headline": "Under 5 words", "sub": "Who it's for", "body": "Under 15 words — direct, not flowery", "visual": "Visual direction from symbol or scene"},
+    {"act": 2, "role": "About You", "headline": "Drawn from what the user said about this person — specific, not generic", "body": "Narrative prose using only what the user provided. Find the strongest angle. No template.", "visual": "Image direction"},
+    {"act": 3, "role": "That Moment", "headline": "A line from or about the scene", "body": "Render the moment using only the details the user mentioned. If sparse, stay sparse.", "visual": "Scene image direction"},
+    {"act": 4, "role": "Message", "headline": "VERBATIM user_own_words", "body": "1–2 sentences alongside — not overshadowing", "visual": "Dark, focused"},
+    {"act": 5, "role": "Closing", "headline": "3–5 words", "body": "1–2 sentences. Honest.", "sign": "sender_name if provided", "visual": "Soft"}
   ]
 }
