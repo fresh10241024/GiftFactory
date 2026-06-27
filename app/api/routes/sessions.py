@@ -12,9 +12,7 @@ from openai import OpenAI
 from app.db import supabase
 from app.config import settings
 from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT, DESIGN_SKILLS
-from app.question_bank import QuestionBank, MAX_TURNS
-
-_question_bank = QuestionBank()
+from app.question_bank import next_slot, build_focus_injection, MAX_TURNS
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=300.0)
@@ -147,23 +145,31 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
 
     current_state = session.get("style_summary") or {}
     turn_count = current_state.get("_turn_count", 0) + 1
-    asked: set = set(current_state.get("_asked_questions", []))
+    force_ready = turn_count >= MAX_TURNS
 
-    # Select next question BEFORE calling Claude
-    next_q = _question_bank.next(current_state, asked) if turn_count < MAX_TURNS else None
-    force_ready = (turn_count >= MAX_TURNS or next_q is None)
+    # Build system prompt: inject next-slot focus so Claude knows what to collect
+    system = CONVERSATION_SYSTEM
+    if not force_ready:
+        slot = next_slot(current_state)
+        if slot:
+            system = CONVERSATION_SYSTEM.replace("{NEXT_FOCUS}", build_focus_injection(slot))
+        else:
+            force_ready = True
+    if force_ready:
+        system = CONVERSATION_SYSTEM.replace(
+            "{NEXT_FOCUS}",
+            "【NEXT FOCUS】\nAll materials collected. Output ONLY: \"Got everything I need.\" — then the <state> block with ready=true."
+        )
 
-    # Call Claude — only for state extraction (conversation.md outputs only <state>)
+    # Call Claude
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     messages.append({"role": "user", "content": body.message})
-
-    state_context = f"\n\nCURRENTLY COLLECTED:\n{json.dumps({k: v for k, v in current_state.items() if v and not k.startswith('_')}, ensure_ascii=False)}"
 
     try:
         response = client.messages.create(
             model="claude-haiku-4-5",
-            max_tokens=512,
-            system=CONVERSATION_SYSTEM + state_context,
+            max_tokens=1024,
+            system=system,
             messages=messages
         )
         raw_reply = response.content[0].text
@@ -173,20 +179,15 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     # Merge extracted state — never lose existing data
     new_state = extract_state(raw_reply)
     merged_state = {**current_state, **(new_state or {})}
+    reply = clean_reply(raw_reply)
 
-    # Determine reply and ready flag
     if force_ready:
-        reply = "Got everything I need."
         merged_state["ready"] = True
-    else:
-        reply = next_q.text
-        asked.add(next_q.text)
+        if not reply:
+            reply = "Got everything I need."
 
     ready = merged_state.get("ready", False)
-
-    # Persist turn tracking (strip internal keys from being too large)
     merged_state["_turn_count"] = turn_count
-    merged_state["_asked_questions"] = list(asked)
 
     # Update session state
     current_status = session.get("status", "chatting")
@@ -196,7 +197,6 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
             "status": "ready" if ready else "chatting"
         }).eq("id", session_id).execute()
 
-    # Store AI raw output (state extraction result) for debugging
     supabase.table("messages").insert({
         "session_id": session_id,
         "role": "assistant",

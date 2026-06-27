@@ -1,142 +1,150 @@
 """
-Gift question bank — selects the next question to ask based on what's been collected.
+Gift question bank — determines WHAT to collect next; Claude decides HOW to ask it.
 
-Each question targets one "slot" in the gift state. The selection pipeline:
-  1. Find the highest-priority unfilled slot
-  2. Filter questions for that slot
-  3. Exclude already-asked questions
-  4. Weighted random sample
+The bank picks the next unfilled slot and provides:
+  - A one-line focus description (injected into the system prompt)
+  - 2–4 example phrasings for that slot (Claude can use, adapt, or riff on them)
+
+Claude reads the full conversation context and generates the question in the most
+contextually appropriate way. The bank is a quality guardrail, not a script.
 
 Slot priority: recipient → song → memory → message → relationship → occasion → emotion → detail
 
-"detail" is an open-ended enrichment slot asked after core slots are filled.
-At turn 10 the backend forces ready=true regardless of slot fill status.
+MAX_TURNS = 10: at turn 10 the backend forces ready=true regardless of slot fill status.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Set
-import random
 
-
-@dataclass
-class GiftQuestion:
-    text: str
-    slot: str     # recipient | song | memory | message | relationship | occasion | emotion | detail
-    weight: float = 1.0
-
-
-# Maps state dict keys → slot names
-STATE_TO_SLOT = {
-    "recipient_name": "recipient",
-    "song":           "song",
-    "key_scene":      "memory",
-    "user_own_words": "message",
-    "relationship":   "relationship",
-    "occasion":       "occasion",
-    "core_emotion":   "emotion",
-}
-
-SLOT_PRIORITY = [
-    "recipient",
-    "song",
-    "memory",
-    "message",
-    "relationship",
-    "occasion",
-    "emotion",
-    "detail",
-]
 
 MAX_TURNS = 10
 
-_QUESTIONS: List[GiftQuestion] = [
 
-    # ── Recipient ─────────────────────────────────────────────────────────
-    GiftQuestion("Who's this gift for?",               slot="recipient", weight=2.0),
-    GiftQuestion("Who are you thinking about?",        slot="recipient"),
-    GiftQuestion("Who's on your mind right now?",      slot="recipient"),
+@dataclass
+class Slot:
+    name: str
+    focus: str              # one-line description of what to collect
+    examples: List[str]     # quality example phrasings (Claude can adapt)
+    state_keys: List[str]   # state dict keys that indicate this slot is filled
 
-    # ── Song ─────────────────────────────────────────────────────────────
-    GiftQuestion("Is there a song that makes you think of them?",       slot="song", weight=1.5),
-    GiftQuestion("What song reminds you of this person?",               slot="song"),
-    GiftQuestion("What would be the soundtrack to your relationship?",  slot="song"),
-    GiftQuestion("Any music that feels like them?",                     slot="song"),
-    GiftQuestion("Does a song come to mind when you think of them?",    slot="song"),
-    GiftQuestion("What song plays when you miss them?",                 slot="song"),
 
-    # ── Memory ────────────────────────────────────────────────────────────
-    GiftQuestion("Is there a moment you two shared that you'll never forget?",      slot="memory", weight=1.5),
-    GiftQuestion("Tell me about a specific moment — where were you, what were you doing?", slot="memory"),
-    GiftQuestion("What's a memory that captures how you feel about them?",          slot="memory"),
-    GiftQuestion("When did you last feel really close to them?",                    slot="memory"),
-    GiftQuestion("Is there a place that's kind of 'yours'?",                        slot="memory"),
-    GiftQuestion("What's a moment with them you'd want to keep forever?",           slot="memory"),
-    GiftQuestion("Walk me through a day or moment with them.",                      slot="memory"),
-
-    # ── Message ───────────────────────────────────────────────────────────
-    GiftQuestion("If you could say one thing to them right now, what would it be?", slot="message", weight=1.5),
-    GiftQuestion("What's something you've always wanted to tell them?",             slot="message"),
-    GiftQuestion("What do you most want them to know?",                             slot="message"),
-    GiftQuestion("What would your message to them be — just one sentence?",         slot="message"),
-    GiftQuestion("What's the thing you've never quite found the right words for?",  slot="message"),
-    GiftQuestion("If you wrote them a note right now, what would it say?",          slot="message"),
-
-    # ── Relationship ──────────────────────────────────────────────────────
-    GiftQuestion("How long have you two known each other?",    slot="relationship"),
-    GiftQuestion("How would you describe your bond?",          slot="relationship"),
-    GiftQuestion("What does this person mean to you?",         slot="relationship"),
-    GiftQuestion("What kind of relationship do you share?",    slot="relationship"),
-
-    # ── Occasion ──────────────────────────────────────────────────────────
-    GiftQuestion("What's the occasion?",                                    slot="occasion"),
-    GiftQuestion("Is there something specific you're celebrating?",         slot="occasion"),
-    GiftQuestion("What's making right now feel like the right moment?",     slot="occasion"),
-    GiftQuestion("What's the reason for this gift?",                        slot="occasion"),
-
-    # ── Emotion ───────────────────────────────────────────────────────────
-    GiftQuestion("What feeling do you most want this gift to carry?",   slot="emotion"),
-    GiftQuestion("If this gift had a mood, what would it be?",          slot="emotion"),
-    GiftQuestion("What do you want them to feel when they open this?",  slot="emotion"),
-    GiftQuestion("What's the main vibe you're going for?",              slot="emotion"),
-
-    # ── Detail (enrichment, asked after core slots filled) ────────────────
-    GiftQuestion("Is there a color, place, or thing that's totally them?",                     slot="detail"),
-    GiftQuestion("What's something small about them that others might miss?",                  slot="detail"),
-    GiftQuestion("What would you want a stranger to understand about this person?",            slot="detail"),
-    GiftQuestion("Is there an inside joke or detail that makes your relationship unique?",     slot="detail"),
-    GiftQuestion("What makes them, them — in one breath?",                                     slot="detail"),
-    GiftQuestion("Anything else I should know to make this perfect?",                          slot="detail"),
-    GiftQuestion("What's a little thing they do that you love?",                               slot="detail"),
-    GiftQuestion("Describe them in three words.",                                              slot="detail"),
+_SLOTS: List[Slot] = [
+    Slot(
+        name="recipient",
+        focus="Who is this gift for? (name or nickname)",
+        examples=[
+            "Who's this gift for?",
+            "Who are you thinking about?",
+            "Who's on your mind?",
+        ],
+        state_keys=["recipient_name"],
+    ),
+    Slot(
+        name="song",
+        focus="A song that reminds them of each other, or that captures the relationship",
+        examples=[
+            "Is there a song that makes you think of them?",
+            "What song reminds you of this person?",
+            "What would be the soundtrack to your relationship?",
+            "Does a song come to mind when you think of them?",
+        ],
+        state_keys=["song"],
+    ),
+    Slot(
+        name="memory",
+        focus="A specific shared moment, place, or scene — concrete details make the gift vivid",
+        examples=[
+            "Is there a moment you two shared that you'll never forget?",
+            "Tell me about a specific moment — where were you, what were you doing?",
+            "When did you last feel really close to them?",
+            "Is there a place that's kind of 'yours'?",
+        ],
+        state_keys=["key_scene"],
+    ),
+    Slot(
+        name="message",
+        focus="The user's own words — something they want to say to this person",
+        examples=[
+            "If you could say one thing to them right now, what would it be?",
+            "What's something you've always wanted to tell them?",
+            "What do you most want them to know?",
+            "What's the thing you've never quite found the right words for?",
+        ],
+        state_keys=["user_own_words"],
+    ),
+    Slot(
+        name="relationship",
+        focus="How they know this person — the nature of their connection",
+        examples=[
+            "How long have you two known each other?",
+            "How would you describe your bond?",
+            "What does this person mean to you?",
+        ],
+        state_keys=["relationship"],
+    ),
+    Slot(
+        name="occasion",
+        focus="The reason for the gift — what's being celebrated or marked",
+        examples=[
+            "What's the occasion?",
+            "Is there something specific you're celebrating?",
+            "What's making right now feel like the right moment?",
+        ],
+        state_keys=["occasion"],
+    ),
+    Slot(
+        name="emotion",
+        focus="The core feeling or mood they want the gift to carry",
+        examples=[
+            "What feeling do you most want this gift to carry?",
+            "If this gift had a mood, what would it be?",
+            "What do you want them to feel when they see this?",
+        ],
+        state_keys=["core_emotion"],
+    ),
+    Slot(
+        name="detail",
+        focus="A small, specific detail that makes this person uniquely them",
+        examples=[
+            "Is there a color, place, or thing that's totally them?",
+            "What's something small about them that others might miss?",
+            "What makes them, them — in one breath?",
+            "Anything else I should know to make this perfect?",
+        ],
+        state_keys=[],  # enrichment slot — never "filled"
+    ),
 ]
 
+_SLOT_MAP = {s.name: s for s in _SLOTS}
+_PRIORITY = [s.name for s in _SLOTS]
 
-class QuestionBank:
-    def __init__(self):
-        self._questions = _QUESTIONS
 
-    def next(self, state: dict, asked: Set[str] = None) -> Optional[GiftQuestion]:
-        asked = asked or set()
-        filled = {slot for key, slot in STATE_TO_SLOT.items() if state.get(key)}
+def next_slot(state: dict) -> Optional[Slot]:
+    """Return the highest-priority unfilled slot, or None if all core slots are done."""
+    filled = {
+        slot.name
+        for slot in _SLOTS
+        if slot.state_keys and all(state.get(k) for k in slot.state_keys)
+    }
 
-        target = None
-        for slot in SLOT_PRIORITY:
-            if slot == "detail":
-                if len(filled) >= 4:
-                    target = slot
-                    break
-            elif slot not in filled:
-                target = slot
-                break
+    for name in _PRIORITY:
+        slot = _SLOT_MAP[name]
+        if name == "detail":
+            # Ask detail questions only after ≥4 core slots are collected
+            if len(filled) >= 4:
+                return slot
+        elif name not in filled:
+            return slot
 
-        if not target:
-            return None
+    return None
 
-        pool = [q for q in self._questions if q.slot == target and q.text not in asked]
-        if not pool:
-            pool = [q for q in self._questions if q.slot == target]
-        if not pool:
-            return None
 
-        weights = [q.weight for q in pool]
-        return random.choices(pool, weights=weights, k=1)[0]
+def build_focus_injection(slot: Slot) -> str:
+    """Build the NEXT FOCUS block to inject into the system prompt."""
+    examples = "\n".join(f'  • "{e}"' for e in slot.examples)
+    return (
+        f"【NEXT FOCUS】\n"
+        f"Collect: {slot.focus}\n"
+        f"Example phrasings (use, adapt, or riff on these based on context):\n"
+        f"{examples}"
+    )
