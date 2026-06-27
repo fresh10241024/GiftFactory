@@ -148,60 +148,107 @@ export class ScreenshotFeature {
         const questionText = document.getElementById('current-question')?.textContent || '';
         const answerText   = document.getElementById('answer-input')?.value || '';
 
-        const W = 750, H = 1000;
+        // Size card to viewport at 3:4 ratio
+        const cardH = Math.min(window.innerHeight * 0.9, 900);
+        const cardW = Math.round(cardH * 0.75);
 
+        // Proportional type scale
+        const qLen    = questionText.length;
+        const qFontPx = qLen > 80 ? Math.round(cardW * 0.046)
+                      : qLen > 40 ? Math.round(cardW * 0.060)
+                      : Math.round(cardW * 0.075);
+        const bubbleDiam = Math.round(cardW * 0.54);
+        const ansFontPx  = Math.round(bubbleDiam * 0.073);
+        const hPad       = Math.round(cardW * 0.057);
+        const vPad       = Math.round(cardH * 0.038);
+
+        // ── Card root ─────────────────────────────────────────────
         const card = document.createElement('div');
         Object.assign(card.style, {
-            position:      'fixed',
-            top:           '-9999px',
-            left:          '-9999px',
-            width:         W + 'px',
-            height:        H + 'px',
+            width:         cardW + 'px',
+            height:        cardH + 'px',
             background:    '#121212',
             display:       'flex',
             flexDirection: 'column',
-            justifyContent:'center',
-            alignItems:    'center',
-            gap:           '48px',
-            padding:       '80px 64px',
             boxSizing:     'border-box',
             overflow:      'hidden',
+            flexShrink:    '0',
         });
 
-        // Question — font scales down for longer text to stay within card
-        const qFontSize = questionText.length > 80 ? '30px'
-                        : questionText.length > 40 ? '38px'
-                        : '48px';
+        // ── Header (mirrors live page header) ────────────────────
+        const hdr = document.createElement('div');
+        Object.assign(hdr.style, {
+            display:        'flex',
+            justifyContent: 'space-between',
+            alignItems:     'flex-start',
+            padding:        `${vPad}px ${hPad}px 0`,
+            flexShrink:     '0',
+        });
+
+        const brandEl = document.createElement('span');
+        brandEl.textContent = 'GiftFactory';
+        Object.assign(brandEl.style, {
+            color:         'rgba(255,255,255,0.7)',
+            fontFamily:    'Arial, sans-serif',
+            fontSize:      '14px',
+            letterSpacing: '0.01em',
+        });
+
+        const infoEl = document.createElement('div');
+        Object.assign(infoEl.style, { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' });
+        [['AI Generative Canvas', 'rgba(255,255,255,0.55)'],
+         ['Engine Active',        'rgba(255,255,255,0.3)'],
+         ['Digital Art Edition',  'rgba(255,255,255,0.3)'],
+        ].forEach(([text, color]) => {
+            const s = document.createElement('span');
+            s.textContent = text;
+            Object.assign(s.style, { color, fontFamily: 'Arial, sans-serif', fontSize: '11px' });
+            infoEl.appendChild(s);
+        });
+
+        hdr.appendChild(brandEl);
+        hdr.appendChild(infoEl);
+
+        // ── Content (question + bubble, vertically centered) ──────
+        const content = document.createElement('div');
+        Object.assign(content.style, {
+            flex:           '1',
+            display:        'flex',
+            flexDirection:  'column',
+            justifyContent: 'center',
+            alignItems:     'center',
+            padding:        `16px ${Math.round(cardW * 0.085)}px`,
+            gap:            `${Math.round(cardH * 0.048)}px`,
+            boxSizing:      'border-box',
+        });
+
         const q = document.createElement('h2');
         q.textContent = questionText;
         Object.assign(q.style, {
             color:      '#ffffff',
             fontFamily: 'Times, serif',
-            fontSize:   qFontSize,
+            fontSize:   qFontPx + 'px',
             lineHeight: '1.35',
             textAlign:  'center',
             margin:     '0',
             fontWeight: 'normal',
             width:      '100%',
-            boxSizing:  'border-box',
             wordBreak:  'break-word',
             overflow:   'hidden',
         });
 
-        // Answer bubble — mirror the live circle
-        const bubbleSize = answerText ? '320px' : '140px';
         const bubble = document.createElement('div');
         Object.assign(bubble.style, {
-            width:         bubbleSize,
-            height:        bubbleSize,
-            borderRadius:  '50%',
-            background:    '#4D83FC',
-            display:       'flex',
-            justifyContent:'center',
-            alignItems:    'center',
-            padding:       '36px',
-            boxSizing:     'border-box',
-            flexShrink:    '0',
+            width:          bubbleDiam + 'px',
+            height:         bubbleDiam + 'px',
+            borderRadius:   '50%',
+            background:     '#4D83FC',
+            display:        'flex',
+            justifyContent: 'center',
+            alignItems:     'center',
+            padding:        '28px',
+            boxSizing:      'border-box',
+            flexShrink:     '0',
         });
 
         if (answerText) {
@@ -210,41 +257,60 @@ export class ScreenshotFeature {
             Object.assign(ans.style, {
                 color:      '#ffffff',
                 fontFamily: 'Arial, sans-serif',
-                fontSize:   '17px',
+                fontSize:   ansFontPx + 'px',
                 textAlign:  'center',
                 lineHeight: '1.55',
                 margin:     '0',
                 wordBreak:  'break-word',
+                overflow:   'hidden',
             });
             bubble.appendChild(ans);
         }
 
-        // Brand watermark
-        const brand = document.createElement('p');
-        brand.textContent = 'GiftFactory';
-        Object.assign(brand.style, {
-            position:      'absolute',
-            bottom:        '36px',
-            color:         'rgba(255,255,255,0.25)',
+        content.appendChild(q);
+        content.appendChild(bubble);
+
+        // ── Watermark ─────────────────────────────────────────────
+        const wm = document.createElement('p');
+        wm.textContent = 'GIFTFACTORY';
+        Object.assign(wm.style, {
+            color:         'rgba(255,255,255,0.2)',
             fontFamily:    'Arial, sans-serif',
-            fontSize:      '13px',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
+            fontSize:      '10px',
+            letterSpacing: '0.14em',
             margin:        '0',
+            padding:       `0 0 ${Math.round(cardH * 0.033)}px`,
+            textAlign:     'center',
+            flexShrink:    '0',
         });
 
-        card.appendChild(q);
-        card.appendChild(bubble);
-        card.appendChild(brand);
-        document.body.appendChild(card);
+        card.appendChild(hdr);
+        card.appendChild(content);
+        card.appendChild(wm);
+
+        // ── On-screen overlay (fonts load correctly when visible) ─
+        const overlay = document.createElement('div');
+        Object.assign(overlay.style, {
+            position:       'fixed',
+            top:            '0', left: '0',
+            width:          '100%', height: '100%',
+            background:     'rgba(0,0,0,0.85)',
+            zIndex:         '9999',
+            display:        'flex',
+            justifyContent: 'center',
+            alignItems:     'center',
+        });
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
 
         this.closePanel();
-        await new Promise(r => setTimeout(r, 280));
+
+        // Two RAF cycles ensure the browser paints before capture
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await new Promise(r => setTimeout(r, 80));
 
         try {
             const canvas = await html2canvas(card, {
-                width:           W,
-                height:          H,
                 scale:           2,
                 useCORS:         true,
                 backgroundColor: '#121212',
@@ -252,7 +318,7 @@ export class ScreenshotFeature {
             });
             this.download(canvas);
         } finally {
-            document.body.removeChild(card);
+            document.body.removeChild(overlay);
         }
     }
 
