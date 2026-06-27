@@ -7,7 +7,7 @@ export class ChatInteraction {
         this.buttonText = this.answerBtn.querySelector('.button-text');
         this.measure = this.answerBtn.querySelector('.input-measure');
         this.questionEl = document.getElementById('current-question');
-        this.enterHint = document.getElementById('enter-hint');
+        this.sendBtn = document.getElementById('send-btn');
         
         // Upload Elements
         this.uploadBtn = document.getElementById('upload-button');
@@ -151,10 +151,18 @@ export class ChatInteraction {
         });
 
         this.input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.submitAnswer();
             }
+        });
+
+        // Prevent textarea blur when clicking send button
+        this.sendBtn.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+        this.sendBtn.addEventListener('click', () => {
+            this.submitAnswer();
         });
 
         // Close on blur if empty
@@ -240,45 +248,44 @@ export class ChatInteraction {
         this.input.value = '';
         this.answerBtn.style.width = '';
         this.answerBtn.style.height = '';
-        this.input.style.fontSize = '';
-        this.enterHint.classList.remove('is-visible');
+        this.input.style.width = '';
+        this.input.style.height = '';
+        this.sendBtn.classList.remove('is-visible');
     }
 
     adjustSize() {
         const text = this.input.value;
-        const textToMeasure = text || '|';
-        this.measure.textContent = textToMeasure;
-        
-        // Show enter hint if there is text
-        if (text.trim().length > 0) {
-            this.enterHint.classList.add('is-visible');
-        } else {
-            this.enterHint.classList.remove('is-visible');
-        }
-        
-        // Base sizes
-        const minSize = 200;
-        const padding = 60;
-        
-        // Calculate needed width based on text
-        const textWidth = this.measure.offsetWidth;
-        let newSize = Math.max(minSize, textWidth + padding);
-        
-        // If text is very long, cap the size and reduce font size
-        const maxSize = 400;
-        let fontSize = 24;
-        
-        if (newSize > maxSize) {
-            newSize = maxSize;
-            // Roughly calculate new font size
-            const ratio = (maxSize - padding) / textWidth;
-            fontSize = Math.max(14, Math.floor(24 * ratio));
-        }
+        const hasText = text.trim().length > 0;
+        this.sendBtn.classList.toggle('is-visible', hasText);
 
-        this.answerBtn.style.width = `${newSize}px`;
-        this.answerBtn.style.height = `${newSize}px`;
-        this.input.style.fontSize = `${fontSize}px`;
-        this.measure.style.fontSize = `${fontSize}px`;
+        const minSize = 200;
+        const maxWidth = 420;
+        const hPad = 80;  // horizontal padding inside circle
+        const vPad = 90;  // vertical padding (leaves room for send button)
+
+        // Measure single-line text width via hidden span
+        this.measure.textContent = text || '|';
+        const textWidth = this.measure.offsetWidth;
+        const neededByText = Math.max(minSize, textWidth + hPad);
+
+        if (neededByText <= maxWidth) {
+            // Circle mode: text fits on one line, grow circle equally
+            const size = neededByText;
+            this.answerBtn.style.width = `${size}px`;
+            this.answerBtn.style.height = `${size}px`;
+            this.input.style.width = `${size - hPad}px`;
+            this.input.style.height = 'auto';
+        } else {
+            // Capsule mode: cap width, let text wrap, grow height
+            const innerW = maxWidth - hPad;
+            this.input.style.width = `${innerW}px`;
+            this.input.style.height = 'auto';
+            const scrollH = this.input.scrollHeight;
+            const finalHeight = Math.max(maxWidth, scrollH + vPad);
+            this.answerBtn.style.width = `${maxWidth}px`;
+            this.answerBtn.style.height = `${finalHeight}px`;
+            this.input.style.height = `${scrollH}px`;
+        }
     }
 
     async submitAnswer() {
