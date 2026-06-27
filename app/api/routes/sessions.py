@@ -319,7 +319,8 @@ def _run_plan(session_id: str, state: dict):
         # Merge state for any extracted structured data
         state_info = {k: v for k, v in state.items() if v and v is not False and k not in ("mood", "_plan", "_analysis")}
 
-        prompt = PLAN_PROMPT.format(state=f"Conversation:\n{transcript}\n\nExtracted info: {json.dumps(state_info, ensure_ascii=False)}")
+        state_str = f"Conversation:\n{transcript}\n\nExtracted info: {json.dumps(state_info, ensure_ascii=False)}"
+        prompt = PLAN_PROMPT.replace("{state}", state_str)
 
         ds = OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=25.0) if settings.deepseek_api_key else None
         plan_text = None
