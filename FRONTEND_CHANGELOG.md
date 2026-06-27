@@ -66,6 +66,40 @@ PATCH /api/user/preferences
 
 ---
 
+## [2026-06-27] 聊天消息携带语言代码（language_code）
+
+### 改动内容
+
+- **修改**：`sendChatMessage` 请求体新增 `language_code` 字段
+- **文件改动**：`fronted.hy/src/scripts/api.js`
+
+### 当前实现逻辑
+
+每次用户发送聊天消息时，前端自动从 `localStorage('lang')` 读取当前语言偏好，拼入请求体：
+
+```json
+POST /api/sessions/{session_id}/chat
+{
+  "message": "用户输入的内容",
+  "language_code": "zh"   // 或 "en"，随用户切换实时变化
+}
+```
+
+- 取值：`"en"`（英文，默认）或 `"zh"`（中文）
+- 用户切换语言后，下一条消息即生效，无需刷新
+
+### 需要 rx 接入
+
+**rx 需要做的事：**
+在 `/api/sessions/{session_id}/chat` 接口中读取 `language_code` 字段，并将其注入系统提示词（system prompt），指示模型用对应语言回复。
+
+例如系统提示词可追加：
+> "Please respond in **Chinese** / **English** based on the user's language preference."
+
+前端已完成，等后端接入即可完整跑通双语对话。
+
+---
+
 ## 记录模板（每次复制使用）
 
 ```

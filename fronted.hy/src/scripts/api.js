@@ -57,10 +57,11 @@ function authHeader() {
 }
 
 export async function sendChatMessage(sessionId, message) {
+    const language_code = localStorage.getItem('lang') || 'en';
     return fetchWithRetry(`/sessions/${sessionId}/chat`, {
         method: 'POST',
         headers: authHeader(),
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, language_code }),
     }, { retries: 2, delayMs: 1000 });
 }
 
