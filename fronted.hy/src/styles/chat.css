@@ -62,6 +62,10 @@
 .question-container {
     flex: 1;
     max-width: 60%;
+    overflow: hidden;
+    max-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
 }
 
 .question-container h1 {
@@ -69,7 +73,11 @@
     font-size: 64px;
     line-height: 1.2;
     margin: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, font-size 0.3s ease;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 8;
 }
 
 .answer-container {

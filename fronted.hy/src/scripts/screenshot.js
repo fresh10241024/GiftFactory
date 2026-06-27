@@ -162,22 +162,30 @@ export class ScreenshotFeature {
             flexDirection: 'column',
             justifyContent:'center',
             alignItems:    'center',
-            gap:           '56px',
+            gap:           '48px',
             padding:       '80px 64px',
             boxSizing:     'border-box',
+            overflow:      'hidden',
         });
 
-        // Question
+        // Question — font scales down for longer text to stay within card
+        const qFontSize = questionText.length > 80 ? '30px'
+                        : questionText.length > 40 ? '38px'
+                        : '48px';
         const q = document.createElement('h2');
         q.textContent = questionText;
         Object.assign(q.style, {
             color:      '#ffffff',
             fontFamily: 'Times, serif',
-            fontSize:   '48px',
-            lineHeight: '1.3',
+            fontSize:   qFontSize,
+            lineHeight: '1.35',
             textAlign:  'center',
             margin:     '0',
             fontWeight: 'normal',
+            width:      '100%',
+            boxSizing:  'border-box',
+            wordBreak:  'break-word',
+            overflow:   'hidden',
         });
 
         // Answer bubble — mirror the live circle

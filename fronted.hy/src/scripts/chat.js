@@ -305,6 +305,11 @@ export class ChatInteraction {
                 this.questionEl.style.opacity = 0;
                 setTimeout(() => {
                     this.questionEl.textContent = res.reply;
+                    // Scale down font for longer questions
+                    const len = res.reply.length;
+                    this.questionEl.style.fontSize =
+                        len > 120 ? '32px' :
+                        len > 60  ? '44px' : '64px';
                     this.questionEl.style.opacity = 1;
                 }, 300);
             }
