@@ -212,15 +212,19 @@ export class ChatInteraction {
         this.gallery.appendChild(card);
         
         try {
-            await uploadImage(this.sessionId, file);
-            
-            // Restore after success
+            const result = await uploadImage(this.sessionId, file);
+
             this.uploadBtn.style.opacity = '1';
             this.uploadBtn.style.pointerEvents = 'auto';
-            this.fileInput.value = ''; // Reset input
-            
-            console.log("Image uploaded successfully");
+            this.fileInput.value = '';
 
+            if (result && result.reply) {
+                this.questionEl.style.opacity = 0;
+                setTimeout(() => {
+                    this.questionEl.textContent = result.reply;
+                    this.questionEl.style.opacity = 1;
+                }, 300);
+            }
         } catch (error) {
             console.error("Upload failed:", error.message);
             this.uploadBtn.style.opacity = '1';

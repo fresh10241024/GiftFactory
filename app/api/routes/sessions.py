@@ -224,25 +224,58 @@ async def upload_image(session_id: str, file: UploadFile = File(...), authorizat
     b64 = base64.standard_b64encode(image_data).decode("utf-8")
     media_type = file.content_type or "image/jpeg"
 
+    collected = {k: v for k, v in state.items() if v and not k.startswith("_")}
+    context_hint = f"Gift context so far: {json.dumps(collected, ensure_ascii=False)}" if collected else ""
+
+    image_system = """You are looking at a personal photo shared to help craft a gift.
+
+Output exactly two things in this order:
+1. One reply line (≤12 words) — notice something SPECIFIC in this image. Warm, perceptive. Not generic praise. Find the real detail.
+2. A <photo> block.
+
+Good reply examples:
+• "That light is quiet. Something happened there."
+• "I can feel the mood from this one."
+• "You can tell that was a good day."
+
+<photo>
+{"description": "emotional atmosphere and scene in one sentence", "place": null, "mood": "one word"}
+</photo>"""
+
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5",
-            max_tokens=200,
+            max_tokens=300,
+            system=image_system,
             messages=[{
                 "role": "user",
                 "content": [
                     {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {"type": "text", "text": "Describe the tone, scene and atmosphere of this photo in one sentence, within 20 words, in English."}
+                    {"type": "text", "text": context_hint or "Analyze this photo."}
                 ]
             }]
         )
-        description = resp.content[0].text.strip()
+        raw = resp.content[0].text.strip()
     except Exception:
-        description = f"A {file.filename or 'uploaded photo'}"
+        raw = ""
+
+    photo_match = re.search(r"<photo>(.*?)</photo>", raw, re.DOTALL)
+    photo_data = {}
+    if photo_match:
+        try:
+            photo_data = json.loads(photo_match.group(1).strip())
+        except Exception:
+            pass
+
+    reply = re.sub(r"<photo>.*?</photo>", "", raw, flags=re.DOTALL).strip()
+    if not reply:
+        reply = "Got it — this will help."
+
+    description = photo_data.get("description") or reply
 
     updated_state = {**state, "photo_description": description}
     supabase.table("sessions").update({"style_summary": updated_state}).eq("id", session_id).execute()
-    return {"success": True, "description": description}
+    return {"success": True, "description": description, "reply": reply}
 
 
 @router.post("/{session_id}/plan")
