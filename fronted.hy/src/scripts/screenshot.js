@@ -212,22 +212,28 @@ export class ScreenshotFeature {
         hdr.appendChild(brandEl);
         hdr.appendChild(infoEl);
 
-        // ── Content: bubble fills upper zone, question is bottom footnote ──
+        // ── Content: bubble in upper area, question is bottom footnote ──────
         const content = document.createElement('div');
         Object.assign(content.style, {
             flex:           '1',
             display:        'flex',
             flexDirection:  'column',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',   // anchor to bottom so question footnote never floats
             alignItems:     'center',
-            padding:        `${Math.round(cardH * 0.04)}px ${hPad}px ${Math.round(cardH * 0.03)}px`,
+            padding:        `0 ${hPad}px ${Math.round(cardH * 0.03)}px`,
             boxSizing:      'border-box',
+            gap:            `${Math.round(cardH * 0.04)}px`,
         });
 
-        // Bubble zone: flex:1 expands to fill upper area, bubble centered within
+        // Bubble zone: fixed height = bubble + comfortable breathing room above
         const bubbleWrap = document.createElement('div');
         Object.assign(bubbleWrap.style, {
-            flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%',
+            height:         Math.round(bubbleDiam * 1.22) + 'px',
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            width:          '100%',
+            flexShrink:     '0',
         });
 
         const bubble = document.createElement('div');
@@ -336,21 +342,19 @@ export class ScreenshotFeature {
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         await new Promise(r => setTimeout(r, 80));
 
-        // Hide body so page elements don't bleed into the card capture
-        // (html2canvas renders the full document and clips to element bounds)
-        document.body.style.visibility = 'hidden';
-        overlay.style.visibility = 'visible';
-
+        // html2canvas renders the full document and clips to the element's
+        // screen rect — page elements that overlap the card bleed through.
+        // ignoreElements explicitly whitelists only card + its children.
         try {
             const canvas = await html2canvas(card, {
                 scale:           2,
                 useCORS:         true,
                 backgroundColor: '#121212',
                 logging:         false,
+                ignoreElements:  (el) => el !== card && !card.contains(el),
             });
             this.download(canvas);
         } finally {
-            document.body.style.visibility = '';
             document.body.removeChild(overlay);
         }
     }
