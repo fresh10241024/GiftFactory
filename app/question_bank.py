@@ -165,6 +165,6 @@ def build_focus_injection(slot: Slot) -> str:
     return (
         f"【NEXT FOCUS】\n"
         f"Collect: {slot.focus}\n"
-        f"Example phrasings — use, adapt, or riff on these based on what the user has shared:\n"
+        f"Example phrasings — these are patterns only. Rewrite them completely if the relationship or tone calls for it:\n"
         f"{examples}"
     )

@@ -32,17 +32,19 @@ export class ChatInteraction {
         if (urlSession) {
             this.sessionId = urlSession;
             localStorage.setItem('chat_session_id', urlSession);
+            return;
         }
 
-        // Already have a session → keep using it
-        const existing = localStorage.getItem('chat_session_id');
-        if (existing) {
-            this.sessionId = existing;
-            if (localStorage.getItem('token')) {
+        const token = localStorage.getItem('token');
+
+        if (token) {
+            // Logged-in: reuse existing session or create/manage
+            const existing = localStorage.getItem('chat_session_id');
+            if (existing) {
+                this.sessionId = existing;
                 try {
                     const data = await getMySessions();
                     this.allSessions = data.sessions || [];
-                    // If this session is already done, go to gift page
                     const thisSession = this.allSessions.find(s => s.id === existing);
                     if (thisSession && thisSession.status === 'done') {
                         window.location.href = './gift.html';
@@ -50,21 +52,14 @@ export class ChatInteraction {
                     }
                     this.renderPanel();
                 } catch (_) {}
+                return;
             }
-            return;
-        }
-
-        // No session yet → decide whether to create new or load latest
-        const token = localStorage.getItem('token');
-        if (token) {
             try {
                 const data = await getMySessions();
                 this.allSessions = data.sessions || [];
                 if (this.allSessions.length >= 5) {
-                    // Full: enter the latest one
                     this.sessionId = this.allSessions[0].id;
                 } else {
-                    // Not full: create new
                     const res = await createSession();
                     this.sessionId = res.session_id;
                     this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
@@ -74,11 +69,10 @@ export class ChatInteraction {
                 return;
             } catch (err) {
                 console.error("Session init failed:", err);
-                // Fallback: create new directly
             }
         }
 
-        // Not logged in: create anonymous session
+        // Anonymous: always create a fresh session (never reuse old one)
         try {
             const res = await createSession();
             this.sessionId = res.session_id;
@@ -212,15 +206,19 @@ export class ChatInteraction {
         this.gallery.appendChild(card);
         
         try {
-            await uploadImage(this.sessionId, file);
-            
-            // Restore after success
+            const result = await uploadImage(this.sessionId, file);
+
             this.uploadBtn.style.opacity = '1';
             this.uploadBtn.style.pointerEvents = 'auto';
-            this.fileInput.value = ''; // Reset input
-            
-            console.log("Image uploaded successfully");
+            this.fileInput.value = '';
 
+            if (result && result.reply) {
+                this.questionEl.style.opacity = 0;
+                setTimeout(() => {
+                    this.questionEl.textContent = result.reply;
+                    this.questionEl.style.opacity = 1;
+                }, 300);
+            }
         } catch (error) {
             console.error("Upload failed:", error.message);
             this.uploadBtn.style.opacity = '1';
@@ -314,7 +312,7 @@ export class ChatInteraction {
                 }, 300);
             }
 
-            if (res && res.ready) {
+            if (res && res.max_turns) {
                 setTimeout(() => {
                     window.location.href = './analysis.html';
                 }, 1200);
