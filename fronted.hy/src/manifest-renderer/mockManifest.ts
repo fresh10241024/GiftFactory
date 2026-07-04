@@ -1,0 +1,97 @@
+import type { GiftManifest } from "./types";
+
+export const mockGiftManifest: GiftManifest = {
+  version: "1.0",
+  meta: {
+    language: "zh",
+    theme: "dark-memory",
+    title: "A small gallery of us",
+    recipientName: "小林",
+    senderName: "晓明",
+    occasion: "birthday",
+    createdBy: "ai",
+  },
+  blocks: [
+    {
+      id: "opening-1",
+      block: "opening-title",
+      data: {
+        headline: "For the one who stayed",
+        subheadline: "A small website made from the moments that kept returning.",
+        kicker: "Gift Factory presents",
+        image: "./1.webp",
+        imageAlt: "Opening memory",
+        accentColor: "#b7ff4a"
+      }
+    },
+    {
+      id: "photo-stage-1",
+      block: "photo-exploration-ui",
+      data: {
+        photos: [
+          {
+            src: "./1.webp",
+            alt: "Warm morning memory",
+            title: "The Summer We Kept",
+            eyebrow: "MEMORY 01",
+            summary: "A quiet afternoon folded into light, color, and the small details that stayed.",
+            detail:
+              "那天其实没有发生什么惊天动地的事情，但正因为这样，它才像一张真正属于我们的照片。光线、空气、走过的路，还有你说话时很轻的语气，都被留在这里。",
+            primaryColor: "#9cc9ff",
+          },
+          {
+            src: "./2.webp",
+            alt: "Soft outdoor light",
+            title: "Blue Hour Promise",
+            eyebrow: "MEMORY 02",
+            summary: "A frame for the promise to meet again when the sky turns blue.",
+            detail:
+              "有些回忆不需要被解释得太完整，只要一个颜色、一个地点、一个当时没有说出口的念头，就足够把人带回去。",
+            primaryColor: "#86dec7",
+          },
+          {
+            src: "./3.webp",
+            alt: "Blue-toned scene",
+            title: "After the Rain",
+            eyebrow: "MEMORY 03",
+            summary: "The kind of stillness that arrives after laughter, weather, and long walks.",
+            detail:
+              "雨停以后，很多东西都变得安静。我们好像也没有刻意记住什么，但后来想起来，偏偏是这种安静最清楚。",
+            primaryColor: "#b8a5ff",
+          },
+          {
+            src: "./4.webp",
+            alt: "Quiet frame",
+            title: "Quiet Frame",
+            eyebrow: "MEMORY 04",
+            summary: "A small cinematic pause before the evening changed color.",
+            detail:
+              "这张照片像一小段暂停。它没有催促任何事情发生，只是把那个瞬间放慢，留给以后慢慢看。",
+            primaryColor: "#f2b48d",
+          },
+          {
+            src: "./5.webp",
+            alt: "Muted cinematic moment",
+            title: "Last Light",
+            eyebrow: "MEMORY 05",
+            summary: "The final glow before the day turned into something softer.",
+            detail:
+              "最后一点光落下来的时候，很多普通的东西都会突然变得郑重。也许礼物最重要的部分，就是把这种郑重留下来。",
+            primaryColor: "#dbe981",
+          },
+        ],
+      },
+    },
+    {
+      id: "closing-1",
+      block: "closing-memory-fall",
+      data: {
+        headline: "Keep this close",
+        message: "Some memories do not end. They keep finding their way back into view.",
+        signature: "From 晓明",
+        images: ["./1.webp", "./2.webp", "./3.webp", "./4.webp", "./5.webp"],
+        accentColor: "#f2b48d",
+      },
+    },
+  ],
+};

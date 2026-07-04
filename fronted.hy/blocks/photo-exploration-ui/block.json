@@ -1,0 +1,111 @@
+{
+  "id": "photo-exploration-ui",
+  "name": "照片探索与展示界面",
+  "status": "approved",
+  "approvedAt": "2026-07-04",
+  "role": "播放器式 3D 照片封面舞台：用户通过拖拽、滑动或左右按钮浏览照片；中心照片突出显示，左右照片后退旋转；点击中心照片进入可编辑详情卡片。",
+  "runtime": {
+    "framework": "React / Next.js compatible",
+    "styling": "Tailwind CSS",
+    "motion": "Framer Motion",
+    "copyDependency": "html2canvas"
+  },
+  "slots": {
+    "photos": {
+      "type": "object[]",
+      "required": true,
+      "min": 1,
+      "max": 8,
+      "note": "用户上传照片经过 AI 编排后形成的照片场景列表。建议 3-6 张，超过 8 张会削弱舞台聚焦感。",
+      "itemShape": {
+        "src": {
+          "type": "image",
+          "required": true,
+          "note": "照片 URL。生产环境建议为可跨域读取的 CDN URL，否则复制卡片时 html2canvas 可能无法读取图片。"
+        },
+        "alt": {
+          "type": "string",
+          "required": false,
+          "note": "图片替代文本。缺失时使用 title。"
+        },
+        "title": {
+          "type": "string",
+          "required": true,
+          "maxLength": 42,
+          "note": "当前照片的主标题。必须短、有记忆点，避免长句。"
+        },
+        "eyebrow": {
+          "type": "string",
+          "required": false,
+          "maxLength": 18,
+          "note": "详情卡片里的小号标签，如 MEMORY 01 / SUMMER / 2024。"
+        },
+        "summary": {
+          "type": "string",
+          "required": true,
+          "maxLength": 120,
+          "note": "主界面标题下的一句简短说明。"
+        },
+        "detail": {
+          "type": "string",
+          "required": true,
+          "maxLength": 520,
+          "note": "详情卡片里的长文。AI 生成初稿，用户可编辑；最终应保存到后端 gift config。"
+        },
+        "primaryColor": {
+          "type": "color(hex)",
+          "required": true,
+          "note": "照片主色调，用于动态径向光晕和整体氛围色。建议由图片取色或 AI/视觉算法生成。"
+        }
+      }
+    }
+  },
+  "interactions": {
+    "browse": [
+      "点击左/右按钮切换照片",
+      "鼠标横向拖拽切换照片",
+      "触屏横向滑动切换照片",
+      "点击非中心照片会把该照片切到中心",
+      "点击中心照片打开详情卡片"
+    ],
+    "detailCard": [
+      "详情文字区域可直接编辑",
+      "关闭按钮返回主舞台",
+      "复制卡片按钮把详情卡片复制为图片到剪贴板"
+    ],
+    "reserved": [
+      "右下角 + 按钮预留为上传照片入口",
+      "onUploadClick 可接入上传流程",
+      "onTextChange 可接入自动保存流程"
+    ]
+  },
+  "visualRules": [
+    "不使用传统轮播图圆点、进度条或中间播放按钮",
+    "照片是第一视觉主角，标题不能压住中心照片",
+    "中心照片必须视觉居中且永远在最前层",
+    "左右照片必须后退、旋转、变暗，形成 3D 空间感",
+    "背景光晕必须弱而大，不应像实心色块",
+    "详情卡片应像横向展示卡片，而不是普通弹窗表单"
+  ],
+  "dataPersistence": {
+    "recommended": "前端即时更新本地状态，使用 onTextChange 防抖保存到后端 gift config。",
+    "mvpStorage": "更新 gifts.config JSON 中对应 block 的 photos[index].detail。",
+    "futureStorage": "如果需要版本历史、多人编辑或单张照片管理，可拆为 gift_blocks / gift_photos 表。"
+  },
+  "degradation": {
+    "onePhoto": "只显示中心照片，左右切换按钮仍可存在但不会改变内容。",
+    "missingAlt": "使用 title 作为 alt。",
+    "missingEyebrow": "详情卡片显示默认 MEMORY。",
+    "copyUnsupported": "如果浏览器不支持 ClipboardItem，可退化为下载 PNG 或提示复制失败。",
+    "crossOriginImage": "复制卡片可能失败，生产环境应配置图片 CORS。"
+  },
+  "acceptance": [
+    "主舞台视觉中心与页面中心一致，不偏左或偏右",
+    "中心照片不会被标题遮挡",
+    "切换照片时标题、说明和背景光晕同步切换",
+    "拖拽/滑动超过阈值后能自然切换到相邻照片",
+    "点击中心照片打开详情卡片",
+    "详情文字可编辑，编辑后组件状态即时更新",
+    "复制卡片按钮能复制当前详情卡片图片"
+  ]
+}

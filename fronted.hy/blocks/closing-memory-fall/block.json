@@ -1,0 +1,72 @@
+{
+  "id": "closing-memory-fall",
+  "name": "记忆落幕祝福",
+  "status": "approved",
+  "approvedAt": "2026-07-04",
+  "role": "礼物网站最后一屏：用一句收束祝福、署名和鼠标/触摸触发的照片落下互动，制造轻盈的结尾余韵。",
+  "runtime": {
+    "framework": "React / Next.js compatible",
+    "styling": "Tailwind CSS",
+    "motion": "Framer Motion"
+  },
+  "slots": {
+    "headline": {
+      "type": "string",
+      "required": true,
+      "maxLength": 54,
+      "note": "结尾主标题，短而有收束感。"
+    },
+    "message": {
+      "type": "string",
+      "required": false,
+      "maxLength": 220,
+      "note": "结尾正文，1-2 句话，表达祝福或余韵。"
+    },
+    "signature": {
+      "type": "string",
+      "required": false,
+      "maxLength": 42,
+      "note": "署名，如 From 晓明。"
+    },
+    "images": {
+      "type": "image[]",
+      "required": false,
+      "min": 1,
+      "max": 10,
+      "note": "用于互动落下的照片，建议复用用户上传照片。"
+    },
+    "accentColor": {
+      "type": "color(hex)",
+      "required": false,
+      "note": "结尾强调色，用于署名和背景微光。"
+    }
+  },
+  "interactions": {
+    "pointer": [
+      "用户移动鼠标或手指滑动时，沿轨迹生成照片碎片",
+      "照片短暂弹出、下落、反弹并淡出",
+      "减少动效模式下不生成掉落照片，仅显示静态结尾"
+    ]
+  },
+  "visualRules": [
+    "结尾应安静、轻盈，不要比照片探索主场景更抢戏",
+    "照片掉落是互动彩蛋，不是主要内容",
+    "中心祝福文字必须始终可读",
+    "不直接复用参考源码或参考素材，只复刻交互语言"
+  ],
+  "degradation": {
+    "missingImages": "使用默认预览图片；生产环境建议传入用户照片。",
+    "missingMessage": "使用默认结尾短句。",
+    "missingSignature": "使用默认 With love。",
+    "missingAccentColor": "使用默认暖色 #f2b48d。",
+    "reducedMotion": "关闭掉落照片和大幅进入动画。"
+  },
+  "acceptance": [
+    "作为最后一屏时有明确收束感",
+    "鼠标/触摸移动可触发照片掉落",
+    "照片掉落不会永久堆积导致性能问题",
+    "结尾文字不被互动照片长期遮挡",
+    "可以通过 Gift Manifest data 渲染",
+    "已加入 approved block registry"
+  ]
+}

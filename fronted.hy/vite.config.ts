@@ -1,8 +1,10 @@
 import { defineConfig } from "vite"
 import { resolve } from 'path'
+import react from "@vitejs/plugin-react"
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    plugins: [react()],
     base: "./",
     root: "src/",
     publicDir: "../public",
@@ -28,6 +30,8 @@ export default defineConfig({
                 analysis: resolve(__dirname, 'src/analysis.html'),
                 gift: resolve(__dirname, 'src/gift.html'),
                 dashboard: resolve(__dirname, 'src/dashboard.html'),
+                manifestPreview: resolve(__dirname, 'src/manifest-preview.html'),
+                photoExplorationPreview: resolve(__dirname, 'src/photo-exploration-preview.html'),
             },
         },
     }
