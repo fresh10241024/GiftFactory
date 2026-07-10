@@ -11,6 +11,7 @@ from anthropic import Anthropic
 from openai import OpenAI
 from app.db import supabase
 from app.config import settings
+from app.gift_manifest import build_gift_manifest
 from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT, DESIGN_SKILLS
 from app.question_bank import next_slot, build_focus_injection, MAX_TURNS
 
@@ -441,6 +442,7 @@ def _run_generation(session_id: str, state: dict, plan: dict):
         state.get("scene_detail", {}).get("place", ""),
         state.get("core_emotion", "")
     ])) or "nature,beautiful"
+    manifest = build_gift_manifest(state=state, plan=plan, slug=None)
     prompt = GENERATE_WEBSITE_PROMPT.format(
         state=json.dumps(state, ensure_ascii=False),
         plan=json.dumps(plan, ensure_ascii=False),
@@ -460,6 +462,7 @@ def _run_generation(session_id: str, state: dict, plan: dict):
                 "id": str(uuid.uuid4()),
                 "session_id": session_id,
                 "slug": slug,
+                "config": manifest,
                 "html": html
             }).execute()
             supabase.table("sessions").update({"status": "done"}).eq("id", session_id).execute()

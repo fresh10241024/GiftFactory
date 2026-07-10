@@ -31,10 +31,16 @@ POST /sessions/:id/generate
    slug 是唯一短码，如 "a3f9b2c1"
 ```
 
-### 获取礼物网站配置（前端渲染用）
+### 获取 Gift Manifest v1
+```
+GET /gifts/:slug/config
+→ Gift Manifest JSON
+```
+
+### 获取礼物网站 HTML
 ```
 GET /gifts/:slug
-→ { config, slug }
+→ HTML 页面
 ```
 
 ### 获取对话历史
