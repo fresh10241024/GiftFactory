@@ -26,7 +26,7 @@ class ManifestValidationError(ValueError):
 
 
 def _frontend_asset_url(filename: str) -> str:
-    base = settings.frontend_url.rstrip("/")
+    base = settings.frontend_origin.rstrip("/")
     return f"{base}/{filename.lstrip('/')}"
 
 

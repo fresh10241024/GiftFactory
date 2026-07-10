@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit, urlunsplit
+
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -12,5 +14,12 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
+    @property
+    def frontend_origin(self) -> str:
+        parsed = urlsplit(self.frontend_url)
+        if parsed.scheme and parsed.netloc:
+            return urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+        return self.frontend_url.rstrip("/")
 
 settings = Settings()
