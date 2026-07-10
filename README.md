@@ -5,7 +5,7 @@
 ## 核心流程
 
 ```
-用户对话 → AI 理解意图 → 生成网站配置 JSON → 唯一 URL → 收礼人打开
+用户对话 → AI 理解意图 → 生成 Gift Manifest JSON → 唯一 URL → 收礼人打开
 ```
 
 ## API 接口
@@ -30,6 +30,8 @@ POST /sessions/:id/generate
 → { slug, config }
    slug 是唯一短码，如 "a3f9b2c1"
 ```
+
+现在的 `config` 是 Gift Manifest JSON，后端会先校验 `version/meta/blocks` 和 approved block 约束，再保存到 `gifts.config`。
 
 ### 获取 Gift Manifest v1
 ```

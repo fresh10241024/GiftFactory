@@ -11,8 +11,13 @@ from anthropic import Anthropic
 from openai import OpenAI
 from app.db import supabase
 from app.config import settings
-from app.gift_manifest import build_gift_manifest
-from app.prompts import CONVERSATION_SYSTEM, GENERATE_WEBSITE_PROMPT, PLAN_PROMPT, DESIGN_SKILLS
+from app.gift_manifest import (
+    build_manifest_html,
+    build_manifest_prompt_payload,
+    extract_json_document,
+    validate_gift_manifest,
+)
+from app.prompts import CONVERSATION_SYSTEM, MANIFEST_PROMPT, PLAN_PROMPT
 from app.question_bank import next_slot, build_focus_injection, MAX_TURNS
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -438,26 +443,25 @@ def _call_claude(prompt: str) -> str:
 
 
 def _run_generation(session_id: str, state: dict, plan: dict):
-    keywords = plan.get("unsplash_keywords") or ",".join(filter(None, [
-        state.get("scene_detail", {}).get("place", ""),
-        state.get("core_emotion", "")
-    ])) or "nature,beautiful"
-    manifest = build_gift_manifest(state=state, plan=plan, slug=None)
-    prompt = GENERATE_WEBSITE_PROMPT.format(
-        state=json.dumps(state, ensure_ascii=False),
-        plan=json.dumps(plan, ensure_ascii=False),
-        skills=DESIGN_SKILLS,
-        keywords=keywords
-    )
+    payload = build_manifest_prompt_payload(state=state, plan=plan)
+    prompt = MANIFEST_PROMPT
+    for key, value in payload.items():
+        prompt = prompt.replace(f"{{{key}}}", value)
+
     last_error = None
     for attempt in range(1, 3):
         try:
+            attempt_prompt = prompt
+            if last_error:
+                attempt_prompt += f"\n\nPrevious validation error:\n{last_error}\nReturn a corrected JSON object only."
+
             print(f"[generation] session={session_id} attempt={attempt} start")
             t0 = time.time()
-            raw = _call_claude(prompt)
+            raw = _call_claude(attempt_prompt)
             print(f"[generation] session={session_id} attempt={attempt} claude_ok elapsed={time.time()-t0:.1f}s len={len(raw)}")
-            html = extract_html(raw)
+            manifest = validate_gift_manifest(extract_json_document(raw))
             slug = str(uuid.uuid4())[:8]
+            html = build_manifest_html(manifest, slug=slug)
             supabase.table("gifts").insert({
                 "id": str(uuid.uuid4()),
                 "session_id": session_id,

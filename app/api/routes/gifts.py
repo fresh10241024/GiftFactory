@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from app.db import supabase
-from app.gift_manifest import build_mock_gift_manifest, normalize_gift_manifest
+from app.gift_manifest import ManifestValidationError, build_mock_gift_manifest, validate_gift_manifest
 
 router = APIRouter(prefix="/gifts", tags=["gifts"])
 
@@ -13,9 +13,12 @@ async def get_gift_config(slug: str):
         raise HTTPException(status_code=404, detail="Gift not found")
 
     gift = result.data[0]
-    stored_config = normalize_gift_manifest(gift.get("config"))
+    stored_config = gift.get("config")
     if stored_config:
-        return stored_config
+        try:
+            return validate_gift_manifest(stored_config)
+        except ManifestValidationError:
+            pass
 
     session_id = gift.get("session_id")
     session = None
