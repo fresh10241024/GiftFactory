@@ -13,10 +13,20 @@ function OpeningTitleBlock({ data, onAdvance }: BlockRendererProps) {
   return <OpeningTitle {...(data as OpeningTitleData)} onAdvance={onAdvance} />;
 }
 
-function PhotoExplorationBlock({ data }: BlockRendererProps) {
+function PhotoExplorationBlock({ data, onDataChange }: BlockRendererProps) {
+  const photos = (data.photos as PhotoExplorationItem[] | undefined) ?? [];
   return (
     <PhotoExplorationUI
-      photos={(data.photos as PhotoExplorationItem[] | undefined) ?? []}
+      photos={photos}
+      onTextChange={(index, detail) => {
+        const nextPhotos = photos.map((photo, photoIndex) =>
+          photoIndex === index ? { ...photo, detail } : photo,
+        );
+        onDataChange?.({
+          ...data,
+          photos: nextPhotos,
+        });
+      }}
     />
   );
 }

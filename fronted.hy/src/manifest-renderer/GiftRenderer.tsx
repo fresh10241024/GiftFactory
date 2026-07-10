@@ -3,9 +3,10 @@ import type { GiftManifest } from "./types";
 
 type GiftRendererProps = {
   manifest: GiftManifest;
+  onBlockDataChange?: (blockId: string, nextData: Record<string, unknown>) => void;
 };
 
-export function GiftRenderer({ manifest }: GiftRendererProps) {
+export function GiftRenderer({ manifest, onBlockDataChange }: GiftRendererProps) {
   if (manifest.version !== "1.0") {
     return (
       <div className="grid min-h-[100svh] place-items-center bg-[#050609] p-8 text-center text-white">
@@ -35,6 +36,7 @@ export function GiftRenderer({ manifest }: GiftRendererProps) {
             <BlockComponent
               blockId={entry.id}
               data={entry.data}
+              onDataChange={(nextData) => onBlockDataChange?.(entry.id, nextData)}
               onAdvance={
                 index < manifest.blocks.length - 1
                   ? () => {

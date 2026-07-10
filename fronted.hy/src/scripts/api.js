@@ -95,3 +95,10 @@ export async function startGeneratingGift(sessionId) {
 export async function pollGiftStatus(sessionId) {
     return fetchWithRetry(`/sessions/${sessionId}/gift`, { headers: authHeader() }, { retries: 2, delayMs: 1000 });
 }
+
+export async function updateGiftConfig(slug, config) {
+    return fetchApi(`/gifts/${slug}/config`, {
+        method: 'PATCH',
+        body: JSON.stringify({ config }),
+    });
+}

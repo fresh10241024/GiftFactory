@@ -22,4 +22,5 @@ export type BlockRendererProps = {
   data: Record<string, unknown>;
   blockId: string;
   onAdvance?: () => void;
+  onDataChange?: (nextData: Record<string, unknown>) => void;
 };
