@@ -64,10 +64,14 @@ def clean_reply(text: str, fallback: str = "") -> str:
 
     # The UI is a question-at-a-time interview. Keep model drift or legacy
     # multi-paragraph replies from leaking analysis/page-generation copy into it.
+    question_lines = []
     for line in lines:
         line = re.sub(r"^(question|reply)\s*:\s*", "", line, flags=re.IGNORECASE)
-        if "?" in line or "？" in line:
-            return line
+        # Keep the last actual question when the model prepends an apology,
+        # summary, or other conversational filler on the same line.
+        question_lines.extend(re.findall(r"[^。！？?!]*[？?]", line))
+    if question_lines:
+        return question_lines[-1].strip()
     return fallback or lines[0]
 
 
@@ -266,8 +270,7 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
 
     if force_ready:
         merged_state["ready"] = True
-        if not reply:
-            reply = "Got everything I need."
+        reply = "Got everything I need."
     else:
         # Ignore an early ready=true emitted by the model.
         merged_state["ready"] = False
