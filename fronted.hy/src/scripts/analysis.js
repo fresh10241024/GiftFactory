@@ -1,5 +1,12 @@
 import { generateAnalysisPlan, getPlanStatus } from './api.js';
 
+const POLL_INTERVAL_MS = 2000;
+const POLL_ATTEMPTS = 90;
+const SOFT_WARNING_AT_MS = 30000;
+const MID_WARNING_AT_MS = 90000;
+const HARD_WARNING_AT_MS = 150000;
+const TIMEOUT_MS = POLL_INTERVAL_MS * POLL_ATTEMPTS;
+
 export class AnalysisController {
     constructor() {
         this.contentContainer = document.getElementById('analysis-content');
@@ -13,6 +20,11 @@ export class AnalysisController {
     }
 
     async init() {
+        if (!this.sessionId || this.sessionId === 'temp_session_id') {
+            this.loadingIndicator.innerHTML = 'No active chat session. Please start from <a href="./chat.html" style="color:rgba(255,255,255,0.7)">chat</a> first.';
+            return;
+        }
+
         // Event listeners
         this.revealBtn.addEventListener('click', () => {
             // Next page goes here (e.g. gift.html)
@@ -61,9 +73,20 @@ export class AnalysisController {
     }
 
     async pollPlan() {
-        for (let i = 0; i < 30; i++) {
-            await new Promise(r => setTimeout(r, 2000));
-            this.loadingIndicator.textContent = `Analyzing${'.'.repeat((i % 3) + 1)}  (${(i + 1) * 2}s)`;
+        for (let i = 0; i < POLL_ATTEMPTS; i++) {
+            await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+
+            const elapsedMs = (i + 1) * POLL_INTERVAL_MS;
+            if (elapsedMs >= HARD_WARNING_AT_MS) {
+                this.loadingIndicator.textContent = `Still analyzing... (${Math.round(elapsedMs / 1000)}s)`;
+            } else if (elapsedMs >= MID_WARNING_AT_MS) {
+                this.loadingIndicator.textContent = `This step can take a while. Please keep this tab open. (${Math.round(elapsedMs / 1000)}s)`;
+            } else if (elapsedMs >= SOFT_WARNING_AT_MS) {
+                this.loadingIndicator.textContent = `Analyzing... (${Math.round(elapsedMs / 1000)}s)`;
+            } else {
+                this.loadingIndicator.textContent = `Analyzing${'.'.repeat((i % 3) + 1)}  (${Math.round(elapsedMs / 1000)}s)`;
+            }
+
             try {
                 const res = await getPlanStatus(this.sessionId);
                 if (res.status === 'done') return res.plan;
@@ -73,7 +96,7 @@ export class AnalysisController {
                 }
             } catch (e) { console.warn('poll plan error', e); }
         }
-        this.loadingIndicator.innerHTML = 'Timed out, please try again.<br><br><a href="./chat.html" style="color:rgba(255,255,255,0.6)">← Go back</a>';
+        this.loadingIndicator.innerHTML = `Timed out after ${Math.round(TIMEOUT_MS / 1000)} seconds, please try again.<br><br><a href="./chat.html" style="color:rgba(255,255,255,0.6)">← Go back</a>`;
         return null;
     }
 

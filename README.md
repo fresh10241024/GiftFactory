@@ -5,7 +5,7 @@
 ## 核心流程
 
 ```
-用户对话 → AI 理解意图 → 生成网站配置 JSON → 唯一 URL → 收礼人打开
+用户对话 → AI 理解意图 → 生成 Gift Manifest JSON → 唯一 URL → 收礼人打开
 ```
 
 ## API 接口
@@ -31,10 +31,18 @@ POST /sessions/:id/generate
    slug 是唯一短码，如 "a3f9b2c1"
 ```
 
-### 获取礼物网站配置（前端渲染用）
+现在的 `config` 是 Gift Manifest JSON，后端会先校验 `version/meta/blocks` 和 approved block 约束，再保存到 `gifts.config`。
+
+### 获取 Gift Manifest v1
+```
+GET /gifts/:slug/config
+→ Gift Manifest JSON
+```
+
+### 获取礼物网站 HTML
 ```
 GET /gifts/:slug
-→ { config, slug }
+→ HTML 页面
 ```
 
 ### 获取对话历史
@@ -59,7 +67,8 @@ pip install -r requirements.txt
 
 # 4. 配置环境变量
 cp .env.example .env
-# 填入 ANTHROPIC_API_KEY 和 SUPABASE_URL / SUPABASE_SERVICE_KEY
+# 填入 DEEPSEEK_API_KEY 和 SUPABASE_URL / SUPABASE_SERVICE_KEY。
+# 图片上传分析使用 MiniMax M3。
 
 # 5. 启动
 uvicorn app.main:app --reload
@@ -81,7 +90,9 @@ uvicorn app.main:app --reload
 
 在 Railway 里设置以下环境变量：
 ```
-ANTHROPIC_API_KEY=
+DEEPSEEK_API_KEY=
+MINIMAX_API_KEY=
+ANTHROPIC_API_KEY=  # 旧配置，可留空
 SUPABASE_URL=
 SUPABASE_SERVICE_KEY=
 FRONTEND_URL=https://your-frontend.vercel.app
@@ -90,7 +101,8 @@ FRONTEND_URL=https://your-frontend.vercel.app
 ## 技术栈
 
 - **FastAPI** — 后端框架
-- **Anthropic Claude** — 对话理解 + 配置生成
+- **DeepSeek** — 对话理解、故事分析 + Manifest 生成
+- **MiniMax M3** — 图片上传分析
 - **Supabase** — 数据库 + 存储
 - **Railway** — 部署
 

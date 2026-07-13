@@ -21,6 +21,7 @@ CREATE TABLE gifts (
   id UUID PRIMARY KEY,
   session_id UUID REFERENCES sessions(id),
   slug TEXT UNIQUE NOT NULL,   -- 短码，如 "a3f9b2c1"
+  config JSONB DEFAULT '{}',   -- Gift Manifest v1 JSON
   html TEXT NOT NULL,          -- AI 生成的完整 HTML 文件内容
   created_at TIMESTAMPTZ DEFAULT now()
 );

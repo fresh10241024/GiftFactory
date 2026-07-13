@@ -1,0 +1,76 @@
+{
+  "id": "opening-title",
+  "name": "动态开场标题",
+  "status": "approved",
+  "approvedAt": "2026-07-04",
+  "role": "礼物网站第一屏：用高质量 kinetic typography、代表照片和一句简短说明建立第一印象。",
+  "runtime": {
+    "framework": "React / Next.js compatible",
+    "styling": "Tailwind CSS",
+    "motion": "Framer Motion"
+  },
+  "slots": {
+    "headline": {
+      "type": "string",
+      "required": true,
+      "maxLength": 64,
+      "note": "第一屏最大标题。必须短、有力，适合拆成两行大字。"
+    },
+    "subheadline": {
+      "type": "string",
+      "required": false,
+      "maxLength": 140,
+      "note": "标题下方的简短说明，点明这份礼物的情绪或对象。"
+    },
+    "kicker": {
+      "type": "string",
+      "required": false,
+      "maxLength": 36,
+      "note": "左上方/标题前的小号标签，如 Gift Factory presents。"
+    },
+    "image": {
+      "type": "image",
+      "required": false,
+      "note": "一张代表照片或视觉锚点，建议使用用户上传照片中的一张。"
+    },
+    "imageAlt": {
+      "type": "string",
+      "required": false,
+      "note": "图片替代文本。"
+    },
+    "accentColor": {
+      "type": "color(hex)",
+      "required": false,
+      "note": "开场强调色，用于照片卡片底色和背景微光。"
+    }
+  },
+  "interactions": {
+    "motion": [
+      "大标题从左右两侧错位滑入",
+      "代表照片以弹簧感贴入标题流",
+      "动效 3-5 秒内完成主要进入，不做过长片头"
+    ],
+    "reducedMotion": "prefers-reduced-motion 时关闭大幅位移和模糊，只显示最终排版。"
+  },
+  "visualRules": [
+    "黑色极简背景，文字和小照片是主视觉",
+    "不使用传统 hero 图文左右分栏",
+    "标题可以被屏幕边缘轻微裁切，但核心词必须可读",
+    "照片只是视觉锚点，不应抢过标题",
+    "首屏必须直接传达这是给谁/关于什么的礼物"
+  ],
+  "degradation": {
+    "missingSubheadline": "使用默认短句。",
+    "missingKicker": "使用默认 Gift Factory presents。",
+    "missingImage": "隐藏照片锚点，仅保留 kinetic typography。",
+    "missingAccentColor": "使用默认荧光绿 #b7ff4a。"
+  },
+  "acceptance": [
+    "作为首屏时视觉冲击明确",
+    "标题进入动效自然，不粘滞、不拖沓",
+    "标题不会完全不可读",
+    "移动端不出现严重横向滚动",
+    "可以通过 Gift Manifest data 渲染",
+    "已加入 approved block registry"
+  ]
+}

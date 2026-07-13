@@ -1,0 +1,9 @@
+{
+  "id": "quote-card",
+  "status": "approved",
+  "slots": {
+    "quote": { "type": "string", "required": true, "maxLength": 1000 },
+    "attribution": { "type": "string", "required": false, "maxLength": 180 },
+    "accentColor": { "type": "color(hex)", "required": false }
+  }
+}

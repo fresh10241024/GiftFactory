@@ -8,6 +8,7 @@ def _load(name: str) -> str:
 CONVERSATION_SYSTEM = _load("conversation.md")
 PLAN_PROMPT = _load("plan.md")
 GENERATE_WEBSITE_PROMPT = _load("generate.md")
+MANIFEST_PROMPT = _load("manifest.md")
 
 # Legacy — not used in prompts anymore but kept to avoid import errors
 DESIGN_SKILLS = ""

@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "rules": {
+    "aiSelectableStatuses": ["approved"],
+    "note": "AI manifest generation may only choose blocks whose status is approved. Experimental or draft blocks may exist in the repo but must not be selected for production gifts."
+  },
+  "blocks": [
+    {
+      "id": "text-section",
+      "name": "自由文本段落",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/text-section/block.json",
+      "componentPath": "fronted.hy/blocks/text-section/TextSection.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
+      "id": "media-stage",
+      "name": "图片视频音频舞台",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/media-stage/block.json",
+      "componentPath": "fronted.hy/blocks/media-stage/MediaStage.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
+      "id": "quote-card",
+      "name": "引用卡片",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/quote-card/block.json",
+      "componentPath": "fronted.hy/blocks/quote-card/QuoteCard.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
+      "id": "timeline-story",
+      "name": "时间线故事",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/timeline-story/block.json",
+      "componentPath": "fronted.hy/blocks/timeline-story/TimelineStory.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
+      "id": "closing-memory-fall",
+      "name": "记忆落幕祝福",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/closing-memory-fall/block.json",
+      "componentPath": "fronted.hy/blocks/closing-memory-fall/ClosingMemoryFall.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-04"
+    },
+    {
+      "id": "opening-title",
+      "name": "动态开场标题",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/opening-title/block.json",
+      "componentPath": "fronted.hy/blocks/opening-title/OpeningTitle.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-04"
+    },
+    {
+      "id": "photo-exploration-ui",
+      "name": "照片探索与展示界面",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/photo-exploration-ui/block.json",
+      "componentPath": "fronted.hy/blocks/photo-exploration-ui/PhotoExplorationUI.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-04"
+    }
+  ]
+}

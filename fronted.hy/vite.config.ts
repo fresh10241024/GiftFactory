@@ -1,8 +1,14 @@
-import { defineConfig } from "vite"
+import { defineConfig, loadEnv } from "vite"
 import { resolve } from 'path'
+import react from "@vitejs/plugin-react"
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, process.cwd(), '')
+    const apiTarget = env.VITE_API_TARGET || 'https://web-production-53c2a.up.railway.app'
+
+    return {
+    plugins: [react()],
     base: "./",
     root: "src/",
     publicDir: "../public",
@@ -11,7 +17,7 @@ export default defineConfig({
         open: true,
         proxy: {
             '/api': {
-                target: 'https://web-production-53c2a.up.railway.app',
+                target: apiTarget,
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, ''),
             },
@@ -28,7 +34,10 @@ export default defineConfig({
                 analysis: resolve(__dirname, 'src/analysis.html'),
                 gift: resolve(__dirname, 'src/gift.html'),
                 dashboard: resolve(__dirname, 'src/dashboard.html'),
+                manifestPreview: resolve(__dirname, 'src/manifest-preview.html'),
+                photoExplorationPreview: resolve(__dirname, 'src/photo-exploration-preview.html'),
             },
         },
+    }
     }
 })

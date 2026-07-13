@@ -7,8 +7,11 @@ async function fetchApi(endpoint, options = {}) {
     };
     const response = await fetch(`${BASE_URL}${endpoint}`, config);
     if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.detail || err.error || `HTTP error ${response.status}`);
+        const raw = await response.text().catch(() => '');
+        let err = {};
+        try { err = raw ? JSON.parse(raw) : {}; } catch (_) { /* keep raw text */ }
+        const serverMessage = err.detail || err.error || raw.replace(/\s+/g, ' ').slice(0, 240);
+        throw new Error(serverMessage || `HTTP error ${response.status}`);
     }
     return response.json();
 }
@@ -94,4 +97,11 @@ export async function startGeneratingGift(sessionId) {
 
 export async function pollGiftStatus(sessionId) {
     return fetchWithRetry(`/sessions/${sessionId}/gift`, { headers: authHeader() }, { retries: 2, delayMs: 1000 });
+}
+
+export async function updateGiftConfig(slug, config) {
+    return fetchApi(`/gifts/${slug}/config`, {
+        method: 'PATCH',
+        body: JSON.stringify({ config }),
+    });
 }
