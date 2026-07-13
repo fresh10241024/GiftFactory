@@ -58,6 +58,8 @@ def _normalize_manifest_assets(manifest: dict) -> dict:
                 for photo in photos:
                     if isinstance(photo, dict):
                         photo["src"] = _normalize_asset_path(photo.get("src"))
+        elif block_name == "media-stage":
+            data["src"] = _normalize_asset_path(data.get("src"))
         elif block_name == "closing-memory-fall":
             images = data.get("images")
             if isinstance(images, list):
