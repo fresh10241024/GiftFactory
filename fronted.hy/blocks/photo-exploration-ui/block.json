@@ -18,6 +18,12 @@
       "max": 8,
       "note": "用户上传照片经过 AI 编排后形成的照片场景列表。建议 3-6 张，超过 8 张会削弱舞台聚焦感。",
       "itemShape": {
+        "id": {
+          "type": "string",
+          "required": false,
+          "maxLength": 80,
+          "note": "照片稳定 ID，例如 photo-01。旧 Manifest 可缺省，读取时会兼容。"
+        },
         "src": {
           "type": "image",
           "required": true,
@@ -51,6 +57,24 @@
           "required": true,
           "maxLength": 520,
           "note": "详情卡片里的长文。AI 生成初稿，用户可编辑；最终应保存到后端 gift config。"
+        },
+        "originalText": {
+          "type": "string",
+          "required": false,
+          "maxLength": 1000,
+          "note": "与这张照片关联的用户原话，保持原文。"
+        },
+        "polishedText": {
+          "type": "string",
+          "required": false,
+          "maxLength": 520,
+          "note": "AI 基于用户原话润色出的初稿。"
+        },
+        "textSource": {
+          "type": "string",
+          "required": false,
+          "maxLength": 20,
+          "note": "当前展示文本来源：user、ai 或 user_edit。"
         },
         "primaryColor": {
           "type": "color(hex)",
