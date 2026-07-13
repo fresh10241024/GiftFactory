@@ -15,6 +15,7 @@ from app.gift_manifest import (
     build_manifest_html,
     build_manifest_prompt_payload,
     extract_json_document,
+    ensure_user_photo_block,
     validate_gift_manifest,
 )
 from app.session_cache import (
@@ -587,6 +588,8 @@ def _run_generation(session_id: str, state: dict, plan: dict):
             raw = _call_text_model(attempt_prompt)
             print(f"[generation] session={session_id} attempt={attempt} deepseek_ok elapsed={time.time()-t0:.1f}s len={len(raw)}")
             manifest = validate_gift_manifest(extract_json_document(raw))
+            manifest = ensure_user_photo_block(manifest, state.get("photo_url"))
+            manifest = validate_gift_manifest(manifest)
             slug = str(uuid.uuid4())[:8]
             html = build_manifest_html(manifest, slug=slug)
             supabase.table("gifts").insert({

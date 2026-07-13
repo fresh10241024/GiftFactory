@@ -326,6 +326,42 @@ def validate_gift_manifest(value: Any) -> dict:
     return _normalize_manifest_assets(value)
 
 
+def ensure_user_photo_block(manifest: dict, photo_url: str | None) -> dict:
+    """Guarantee that an uploaded user photo has a visible manifest block."""
+    if not isinstance(photo_url, str) or not photo_url.strip():
+        return manifest
+
+    normalized = deepcopy(manifest)
+    if photo_url in json.dumps(normalized, ensure_ascii=False):
+        return normalized
+
+    blocks = normalized.setdefault("blocks", [])
+    used_ids = {block.get("id") for block in blocks if isinstance(block, dict)}
+    block_id = "user-photo"
+    suffix = 2
+    while block_id in used_ids:
+        block_id = f"user-photo-{suffix}"
+        suffix += 1
+
+    insert_at = 1 if blocks else 0
+    blocks.insert(
+        insert_at,
+        {
+            "id": block_id,
+            "block": "media-stage",
+            "layout": "full-width",
+            "variant": "original-memory",
+            "data": {
+                "src": photo_url,
+                "kind": "image",
+                "alt": "The original photo shared for this gift",
+                "caption": "The photo you chose to keep.",
+            },
+        },
+    )
+    return normalized
+
+
 def extract_json_document(text: str) -> Any:
     if not isinstance(text, str) or not text.strip():
         raise ManifestValidationError("Model output is empty")
