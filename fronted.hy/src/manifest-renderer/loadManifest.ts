@@ -37,7 +37,7 @@ export function validateGiftManifest(value: unknown): GiftManifest {
       throw new Error(`Duplicate block id: ${entry.id}`);
     }
     ids.add(entry.id);
-    if (typeof entry.block !== "string" || !entry.block) {
+    if ((typeof entry.block !== "string" || !entry.block) && (typeof entry.type !== "string" || !entry.type)) {
       throw new Error(`Block ${entry.id} is missing block type.`);
     }
     if (!isObject(entry.data)) {

@@ -1,0 +1,65 @@
+{
+  "version": "1.0",
+  "meta": {
+    "language": "zh",
+    "theme": "quiet-cinematic",
+    "title": "A Small Way Back",
+    "recipientName": "小林",
+    "senderName": "晓明",
+    "occasion": "birthday",
+    "createdBy": "ai"
+  },
+  "design": {
+    "background": "#090a0f",
+    "foreground": "#ffffff",
+    "accent": "#b7ff4a",
+    "motion": "cinematic",
+    "radius": "24px"
+  },
+  "blocks": [
+    {
+      "id": "opening-note",
+      "block": "text-section",
+      "layout": "full-screen",
+      "data": {
+        "eyebrow": "A GIFT FOR XIAOLIN",
+        "title": "Some people become a place to return to.",
+        "body": "This page is made from the small moments that stayed.",
+        "align": "center",
+        "accentColor": "#b7ff4a"
+      }
+    },
+    {
+      "id": "memory-image",
+      "block": "media-stage",
+      "layout": "gallery",
+      "data": {
+        "src": "./1.webp",
+        "kind": "image",
+        "alt": "A quiet shared memory",
+        "caption": "The ordinary moments were never ordinary to us."
+      }
+    },
+    {
+      "id": "shared-words",
+      "block": "quote-card",
+      "data": {
+        "quote": "我希望你知道，你一直都被好好记住。",
+        "attribution": "FROM XIAOMING",
+        "accentColor": "#f2b48d"
+      }
+    },
+    {
+      "id": "our-timeline",
+      "block": "timeline-story",
+      "data": {
+        "title": "A few places we kept",
+        "items": [
+          { "date": "01", "title": "The first summer", "body": "A beginning that did not look important until later.", "image": "./2.webp" },
+          { "date": "02", "title": "After the rain", "body": "The kind of quiet that only feels full when shared.", "image": "./3.webp" }
+        ],
+        "accentColor": "#b7ff4a"
+      }
+    }
+  ]
+}

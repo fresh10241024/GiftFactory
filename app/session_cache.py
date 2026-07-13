@@ -28,11 +28,14 @@ def ensure_session_cache(
 ) -> SessionCacheEntry:
     with _LOCK:
         entry = _CACHE.get(session_id)
+        created = entry is None
         if entry is None:
             entry = SessionCacheEntry()
             _CACHE[session_id] = entry
 
-        if state is not None:
+        # Database rows from older sessions may still contain an empty JSON
+        # object. Never let that empty fallback erase newer in-memory state.
+        if state is not None and (created or state):
             entry.state = deepcopy(state)
         if status is not None:
             entry.status = status

@@ -20,6 +20,11 @@ export class AnalysisController {
     }
 
     async init() {
+        if (!this.sessionId || this.sessionId === 'temp_session_id') {
+            this.loadingIndicator.innerHTML = 'No active chat session. Please start from <a href="./chat.html" style="color:rgba(255,255,255,0.7)">chat</a> first.';
+            return;
+        }
+
         // Event listeners
         this.revealBtn.addEventListener('click', () => {
             // Next page goes here (e.g. gift.html)

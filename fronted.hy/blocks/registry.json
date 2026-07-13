@@ -6,6 +6,42 @@
   },
   "blocks": [
     {
+      "id": "text-section",
+      "name": "自由文本段落",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/text-section/block.json",
+      "componentPath": "fronted.hy/blocks/text-section/TextSection.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
+      "id": "media-stage",
+      "name": "图片视频音频舞台",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/media-stage/block.json",
+      "componentPath": "fronted.hy/blocks/media-stage/MediaStage.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
+      "id": "quote-card",
+      "name": "引用卡片",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/quote-card/block.json",
+      "componentPath": "fronted.hy/blocks/quote-card/QuoteCard.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
+      "id": "timeline-story",
+      "name": "时间线故事",
+      "status": "approved",
+      "schemaPath": "fronted.hy/blocks/timeline-story/block.json",
+      "componentPath": "fronted.hy/blocks/timeline-story/TimelineStory.tsx",
+      "runtime": "react",
+      "approvedAt": "2026-07-13"
+    },
+    {
       "id": "closing-memory-fall",
       "name": "记忆落幕祝福",
       "status": "approved",

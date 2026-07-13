@@ -1,5 +1,13 @@
 export type GiftManifest = {
   version: "1.0";
+  design?: {
+    background?: string;
+    foreground?: string;
+    accent?: string;
+    font?: string;
+    motion?: string;
+    radius?: string;
+  };
   meta: {
     language: "zh" | "en";
     theme: string;
@@ -15,7 +23,10 @@ export type GiftManifest = {
 export type GiftManifestBlock = {
   id: string;
   block: string;
+  type?: string;
   data: Record<string, unknown>;
+  layout?: string;
+  variant?: string;
 };
 
 export type BlockRendererProps = {

@@ -1,0 +1,11 @@
+{
+  "id": "media-stage",
+  "status": "approved",
+  "slots": {
+    "src": { "type": "image", "required": true },
+    "kind": { "type": "string", "required": false, "maxLength": 10 },
+    "alt": { "type": "string", "required": false, "maxLength": 180 },
+    "caption": { "type": "string", "required": false, "maxLength": 500 },
+    "accentColor": { "type": "color(hex)", "required": false }
+  }
+}

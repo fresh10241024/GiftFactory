@@ -52,7 +52,8 @@
         function showGift(slug) {
             document.getElementById('loading').style.display = 'none';
             const frame = document.getElementById('gift-frame');
-            frame.src = BASE + '/gifts/' + slug;
+            // Render the stored Manifest with the approved React block registry.
+            frame.src = './manifest-preview.html?slug=' + encodeURIComponent(slug);
             frame.style.display = 'block';
         }
 

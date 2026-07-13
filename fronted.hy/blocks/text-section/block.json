@@ -1,0 +1,11 @@
+{
+  "id": "text-section",
+  "status": "approved",
+  "slots": {
+    "eyebrow": { "type": "string", "required": false, "maxLength": 80 },
+    "title": { "type": "string", "required": true, "maxLength": 180 },
+    "body": { "type": "string", "required": false, "maxLength": 2000 },
+    "align": { "type": "string", "required": false, "maxLength": 10 },
+    "accentColor": { "type": "color(hex)", "required": false }
+  }
+}

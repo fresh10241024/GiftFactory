@@ -7,6 +7,10 @@ import OpeningTitle, {
 import PhotoExplorationUI, {
   type PhotoExplorationItem,
 } from "../../blocks/photo-exploration-ui/PhotoExplorationUI";
+import MediaStage from "../../blocks/media-stage/MediaStage";
+import QuoteCard from "../../blocks/quote-card/QuoteCard";
+import TextSection from "../../blocks/text-section/TextSection";
+import TimelineStory from "../../blocks/timeline-story/TimelineStory";
 import type { BlockRendererProps } from "./types";
 
 function OpeningTitleBlock({ data, onAdvance }: BlockRendererProps) {
@@ -35,14 +39,28 @@ function ClosingMemoryFallBlock({ data }: BlockRendererProps) {
   return <ClosingMemoryFall {...(data as ClosingMemoryFallData)} />;
 }
 
+function normalizeBlockName(entry: { block?: string; type?: string }) {
+  return entry.block ?? entry.type ?? "";
+}
+
 export const blockRegistry = {
   "opening-title": OpeningTitleBlock,
   "photo-exploration-ui": PhotoExplorationBlock,
   "closing-memory-fall": ClosingMemoryFallBlock,
+  "text-section": TextSection,
+  "media-stage": MediaStage,
+  "quote-card": QuoteCard,
+  "timeline-story": TimelineStory,
 } as const;
 
 export type RegisteredBlockId = keyof typeof blockRegistry;
 
+export function getRegisteredBlock(blockName: string) {
+  return blockRegistry[blockName as RegisteredBlockId];
+}
+
 export function isRegisteredBlock(blockId: string): blockId is RegisteredBlockId {
   return blockId in blockRegistry;
 }
+
+export { normalizeBlockName };

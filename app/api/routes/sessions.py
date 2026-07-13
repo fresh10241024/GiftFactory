@@ -7,7 +7,6 @@ import traceback
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Header
 from typing import Optional
 from pydantic import BaseModel
-from anthropic import Anthropic
 from openai import OpenAI
 from app.db import supabase
 from app.config import settings
@@ -20,6 +19,7 @@ from app.gift_manifest import (
 from app.session_cache import (
     append_session_message,
     ensure_session_cache,
+    get_session_cache,
     get_session_messages,
     get_session_state,
     merge_session_state,
@@ -31,7 +31,10 @@ from app.prompts import CONVERSATION_SYSTEM, MANIFEST_PROMPT, PLAN_PROMPT
 from app.question_bank import next_slot, build_focus_injection, MAX_TURNS
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-client = Anthropic(api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url, timeout=300.0)
+def _make_minimax():
+    if settings.minimax_api_key:
+        return OpenAI(api_key=settings.minimax_api_key, base_url=settings.minimax_base_url, timeout=60.0)
+    return None
 
 def _make_deepseek():
     if settings.deepseek_api_key:
@@ -77,6 +80,47 @@ def _check_session_access(session: dict, caller_user_id: Optional[str]):
 
 
 SESSION_LIMIT = 5
+
+
+def _load_session_cache(session_id: str, session: dict):
+    """Initialize memory from Supabase once; never overwrite newer cached state."""
+    cached = get_session_cache(session_id)
+    if cached is None:
+        ensure_session_cache(
+            session_id,
+            state=session.get("style_summary") or {},
+            status=session.get("status"),
+        )
+    elif cached.status is None and session.get("status"):
+        set_session_status(session_id, session["status"])
+    return get_session_cache(session_id)
+
+
+def _persist_session_context(session_id: str, state: dict, status: str | None = None):
+    from datetime import datetime, timezone
+
+    payload = {
+        "style_summary": state,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if status is not None:
+        payload["status"] = status
+    supabase.table("sessions").update(payload).eq("id", session_id).execute()
+
+
+def _persist_message(session_id: str, role: str, content: str):
+    supabase.table("messages").insert({
+        "session_id": session_id,
+        "role": role,
+        "content": content,
+    }).execute()
+
+
+def _require_uuid(value: str):
+    try:
+        return uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid session id")
 
 @router.post("")
 async def create_session(authorization: Optional[str] = Header(None)):
@@ -124,7 +168,7 @@ async def my_sessions(authorization: Optional[str] = Header(None)):
     )
     sessions = []
     for r in rows.data:
-        cache_entry = ensure_session_cache(r["id"], state=r.get("style_summary") or {}, status=r.get("status"))
+        cache_entry = _load_session_cache(r["id"], r)
         state = cache_entry.state or {}
         status = cache_entry.status or r["status"]
         analysis = state.get("_analysis", {})
@@ -147,11 +191,7 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     session = result.data[0]
     _check_session_access(session, _get_user_id(authorization))
 
-    cache_entry = ensure_session_cache(
-        session_id,
-        state=session.get("style_summary") or {},
-        status=session.get("status"),
-    )
+    cache_entry = _load_session_cache(session_id, session)
 
     history = get_session_messages(session_id)
     if not history:
@@ -167,6 +207,7 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
             ensure_session_cache(session_id, messages=history)
 
     append_session_message(session_id, "user", body.message)
+    _persist_message(session_id, "user", body.message)
 
     current_state = get_session_state(session_id, session.get("style_summary") or {})
     turn_count = current_state.get("_turn_count", 0) + 1
@@ -186,17 +227,19 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
             "【NEXT FOCUS】\nAll materials collected. Output ONLY: \"Got everything I need.\" — then the <state> block with ready=true."
         )
 
-    # Call Claude
+    # DeepSeek is the primary conversation model.
     messages = [{"role": m["role"], "content": m["content"]} for m in (get_session_messages(session_id) or history)[-10:]]
 
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5",
+        ds = _make_deepseek()
+        if not ds:
+            raise RuntimeError("DEEPSEEK_API_KEY is not configured")
+        response = ds.chat.completions.create(
+            model="deepseek-chat",
             max_tokens=1024,
-            system=system,
-            messages=messages
+            messages=[{"role": "system", "content": system}, *messages],
         )
-        raw_reply = response.content[0].text
+        raw_reply = response.choices[0].message.content or ""
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI error: {str(e)}")
 
@@ -221,6 +264,8 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
         supabase.table("sessions").update({"status": next_status}).eq("id", session_id).execute()
 
     append_session_message(session_id, "assistant", raw_reply)
+    _persist_message(session_id, "assistant", raw_reply)
+    _persist_session_context(session_id, merged_state, next_status)
 
     mood = merged_state.get("mood", {"bg": "#0a0a0f", "accent": "#a0a0c0", "particle": "float"})
     return {
@@ -238,7 +283,7 @@ async def upload_image(session_id: str, file: UploadFile = File(...), authorizat
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     _check_session_access(result.data[0], _get_user_id(authorization))
-    cache_entry = ensure_session_cache(session_id, state=result.data[0].get("style_summary") or {}, status=result.data[0].get("status"))
+    cache_entry = _load_session_cache(session_id, result.data[0])
     state = cache_entry.state or {}
 
     image_data = await file.read()
@@ -264,19 +309,24 @@ Good reply examples:
 </photo>"""
 
     try:
-        resp = client.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=300,
-            system=image_system,
+        mm = _make_minimax()
+        if not mm:
+            raise RuntimeError("MINIMAX_API_KEY is not configured")
+        resp = mm.chat.completions.create(
+            model="MiniMax-M3",
+            max_tokens=800,
             messages=[{
+                "role": "system",
+                "content": image_system,
+            }, {
                 "role": "user",
                 "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {"type": "text", "text": context_hint or "Analyze this photo."}
-                ]
-            }]
+                    {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64}"}},
+                    {"type": "text", "text": context_hint or "Analyze this photo."},
+                ],
+            }],
         )
-        raw = resp.content[0].text.strip()
+        raw = (resp.choices[0].message.content or "").strip()
     except Exception:
         raw = ""
 
@@ -288,7 +338,8 @@ Good reply examples:
         except Exception:
             pass
 
-    reply = re.sub(r"<photo>.*?</photo>", "", raw, flags=re.DOTALL).strip()
+    reply = re.sub(r"<photo>.*?</photo>", "", raw, flags=re.DOTALL)
+    reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL).strip()
     if not reply:
         reply = "Got it — this will help."
 
@@ -296,18 +347,23 @@ Good reply examples:
 
     updated_state = {**state, "photo_description": description}
     set_session_state(session_id, updated_state)
+    _persist_session_context(session_id, updated_state)
     return {"success": True, "description": description, "reply": reply}
 
 
 @router.post("/{session_id}/plan")
 async def create_plan(session_id: str, background_tasks: BackgroundTasks, authorization: Optional[str] = Header(None)):
+    _require_uuid(session_id)
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = result.data[0]
     _check_session_access(session, _get_user_id(authorization))
-    ensure_session_cache(session_id, state=session.get("style_summary") or {}, status=session.get("status"))
+    _load_session_cache(session_id, session)
     state = get_session_state(session_id, session.get("style_summary") or {})
+
+    if not state.get("ready"):
+        return {"status": "not_ready", "detail": "Please complete the chat conversation first"}
 
     # Already cached — return immediately
     if state.get("_plan") and state.get("_analysis"):
@@ -355,19 +411,16 @@ def _run_plan(session_id: str, state: dict):
         state_str = f"Conversation:\n{transcript}\n\nExtracted info: {json.dumps(state_info, ensure_ascii=False)}"
         prompt = PLAN_PROMPT.replace("{state}", state_str)
 
-        ds = OpenAI(api_key=settings.deepseek_api_key, base_url="https://api.deepseek.com", timeout=25.0) if settings.deepseek_api_key else None
-        plan_text = None
-        if ds:
-            try:
-                r = ds.chat.completions.create(model="deepseek-chat", max_tokens=3000, messages=[{"role": "user", "content": prompt}])
-                plan_text = r.choices[0].message.content.strip()
-                print(f"[plan] deepseek responded, length={len(plan_text)}")
-            except Exception as e:
-                print(f"[plan] deepseek failed ({e}), falling back to Claude Haiku")
-        if not plan_text:
-            r = client.messages.create(model="claude-haiku-4-5", max_tokens=2000, messages=[{"role": "user", "content": prompt}])
-            plan_text = r.content[0].text.strip()
-            print(f"[plan] claude responded, length={len(plan_text)}")
+        ds = _make_deepseek()
+        if not ds:
+            raise RuntimeError("DEEPSEEK_API_KEY is not configured")
+        r = ds.chat.completions.create(
+            model="deepseek-chat",
+            max_tokens=3000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        plan_text = (r.choices[0].message.content or "").strip()
+        print(f"[plan] deepseek responded, length={len(plan_text)}")
 
         # Robust JSON extraction
         match = re.search(r"\{[\s\S]*\}", plan_text)
@@ -396,23 +449,24 @@ def _run_plan(session_id: str, state: dict):
         merged_state = {**state, "_plan": plan, "_analysis": frontend_plan}
         set_session_state(session_id, merged_state)
         set_session_status(session_id, "ready")
-        supabase.table("sessions").update({"status": "ready"}).eq("id", session_id).execute()
+        _persist_session_context(session_id, merged_state, "ready")
         print(f"[plan] {session_id} done")
     except Exception as e:
         import traceback
         print(f"[plan] {session_id} error: {e}\n{traceback.format_exc()}")
         set_session_status(session_id, "plan_error")
-        supabase.table("sessions").update({"status": "plan_error"}).eq("id", session_id).execute()
+        _persist_session_context(session_id, state, "plan_error")
 
 
 @router.get("/{session_id}/plan")
 async def get_plan(session_id: str, authorization: Optional[str] = Header(None)):
+    _require_uuid(session_id)
     result = supabase.table("sessions").select("status, style_summary, user_id").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
     row = result.data[0]
     _check_session_access(row, _get_user_id(authorization))
-    cache_entry = ensure_session_cache(session_id, state=row.get("style_summary") or {}, status=row.get("status"))
+    cache_entry = _load_session_cache(session_id, row)
     status = cache_entry.status or row["status"]
     state = cache_entry.state or {}
     if status == "plan_error":
@@ -450,24 +504,16 @@ def extract_html(text: str) -> str:
     return html
 
 
-def _call_claude(prompt: str) -> str:
+def _call_text_model(prompt: str) -> str:
     ds = _make_deepseek()
-    if ds:
-        try:
-            r = ds.chat.completions.create(
-                model="deepseek-chat",
-                max_tokens=8000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            return r.choices[0].message.content
-        except Exception as e:
-            print(f"[deepseek] failed ({e}), falling back to Claude")
-    response = client.messages.create(
-        model="claude-haiku-4-5",
+    if not ds:
+        raise RuntimeError("DEEPSEEK_API_KEY is not configured")
+    response = ds.chat.completions.create(
+        model="deepseek-chat",
         max_tokens=8000,
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": prompt}],
     )
-    return response.content[0].text
+    return response.choices[0].message.content or ""
 
 
 def _run_generation(session_id: str, state: dict, plan: dict):
@@ -485,8 +531,8 @@ def _run_generation(session_id: str, state: dict, plan: dict):
 
             print(f"[generation] session={session_id} attempt={attempt} start")
             t0 = time.time()
-            raw = _call_claude(attempt_prompt)
-            print(f"[generation] session={session_id} attempt={attempt} claude_ok elapsed={time.time()-t0:.1f}s len={len(raw)}")
+            raw = _call_text_model(attempt_prompt)
+            print(f"[generation] session={session_id} attempt={attempt} deepseek_ok elapsed={time.time()-t0:.1f}s len={len(raw)}")
             manifest = validate_gift_manifest(extract_json_document(raw))
             slug = str(uuid.uuid4())[:8]
             html = build_manifest_html(manifest, slug=slug)
@@ -498,7 +544,7 @@ def _run_generation(session_id: str, state: dict, plan: dict):
                 "html": html
             }).execute()
             set_session_status(session_id, "done")
-            supabase.table("sessions").update({"status": "done"}).eq("id", session_id).execute()
+            _persist_session_context(session_id, state, "done")
             print(f"[generation] session={session_id} done slug={slug}")
             return
         except Exception as e:
@@ -509,7 +555,8 @@ def _run_generation(session_id: str, state: dict, plan: dict):
                 time.sleep(5)
     merge_session_state(session_id, {"_error": last_error})
     set_session_status(session_id, "error")
-    supabase.table("sessions").update({"status": "error"}).eq("id", session_id).execute()
+    failed_state = {**state, "_error": last_error}
+    _persist_session_context(session_id, failed_state, "error")
     print(f"[generation] session={session_id} all attempts failed")
 
 
@@ -519,7 +566,7 @@ async def summarize_session(session_id: str):
     result = supabase.table("sessions").select("*").eq("id", session_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Session not found")
-    cache_entry = ensure_session_cache(session_id, state=result.data[0].get("style_summary") or {}, status=result.data[0].get("status"))
+    cache_entry = _load_session_cache(session_id, result.data[0])
     state = cache_entry.state or {}
     plan = state.get("_plan", {})
     prompt = f"""Based on the following materials, write a gift summary under 100 words in English, describing what content and feel this gift website will present:
@@ -529,7 +576,7 @@ Script Plan: {json.dumps(plan, ensure_ascii=False)}
 
 Output only the summary text, no HTML."""
     try:
-        raw = _call_claude(prompt)
+        raw = _call_text_model(prompt)
         return {"summary": raw, "has_plan": bool(plan), "recipient": state.get("recipient_name")}
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
@@ -549,19 +596,18 @@ async def generate_gift(session_id: str, background_tasks: BackgroundTasks, auth
         if existing.data:
             return {"status": "done", "slug": existing.data[0]["slug"]}
 
-    cache_entry = ensure_session_cache(session_id, state=session.get("style_summary") or {}, status=session.get("status"))
+    cache_entry = _load_session_cache(session_id, session)
     state = dict(cache_entry.state or {})
     if not state:
         raise HTTPException(status_code=400, detail="Session not ready, keep chatting")
+    if not state.get("ready"):
+        raise HTTPException(status_code=400, detail="Session is not ready, please complete the conversation")
 
     plan = state.pop("_plan", {})
 
     from datetime import datetime, timezone
     set_session_status(session_id, "generating")
-    supabase.table("sessions").update({
-        "status": "generating",
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }).eq("id", session_id).execute()
+    _persist_session_context(session_id, state, "generating")
     background_tasks.add_task(_run_generation, session_id, state, plan)
     return {"status": "generating"}
 
@@ -576,7 +622,7 @@ async def get_gift_status(session_id: str, authorization: Optional[str] = Header
         raise HTTPException(status_code=404, detail="Session not found")
     row = result.data[0]
     _check_session_access(row, _get_user_id(authorization))
-    cache_entry = ensure_session_cache(session_id, state=row.get("style_summary") or {}, status=row.get("status"))
+    cache_entry = _load_session_cache(session_id, row)
     status = cache_entry.status or row["status"]
 
     if status == "generating":
@@ -588,7 +634,7 @@ async def get_gift_status(session_id: str, authorization: Optional[str] = Header
             if elapsed > GENERATION_TIMEOUT:
                 set_session_status(session_id, "error")
                 merge_session_state(session_id, {"_error": f"timeout after {int(elapsed)}s"})
-                supabase.table("sessions").update({"status": "error"}).eq("id", session_id).execute()
+                _persist_session_context(session_id, cache_entry.state or {}, "error")
                 return {"status": "error", "error": f"Generation timed out ({int(elapsed)}s), please try again"}
         return {"status": "generating"}
 

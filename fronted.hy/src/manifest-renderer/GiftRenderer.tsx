@@ -1,4 +1,5 @@
-import { blockRegistry, isRegisteredBlock } from "./blockRegistry";
+import type { CSSProperties } from "react";
+import { getRegisteredBlock, normalizeBlockName } from "./blockRegistry";
 import type { GiftManifest } from "./types";
 
 type GiftRendererProps = {
@@ -15,22 +16,31 @@ export function GiftRenderer({ manifest, onBlockDataChange }: GiftRendererProps)
     );
   }
 
+  const design = manifest.design ?? {};
+  const style = {
+    background: design.background ?? "#050609",
+    color: design.foreground ?? "#ffffff",
+    "--manifest-accent": design.accent ?? "#b7ff4a",
+    "--manifest-radius": design.radius ?? "24px",
+  } as CSSProperties;
+
   return (
-    <main className="min-h-[100svh] bg-[#050609]">
+    <main className="min-h-[100svh]" style={style}>
       {manifest.blocks.map((entry, index) => {
-        if (!isRegisteredBlock(entry.block)) {
+        const blockName = normalizeBlockName(entry);
+        const BlockComponent = getRegisteredBlock(blockName);
+        if (!BlockComponent) {
           return (
             <section
               key={entry.id}
               data-gift-block-index={index}
               className="grid min-h-[60svh] place-items-center bg-[#050609] p-8 text-center text-white"
             >
-              Unknown block: {entry.block}
+              Unsupported block: {blockName}
             </section>
           );
         }
 
-        const BlockComponent = blockRegistry[entry.block];
         return (
           <div key={entry.id} data-gift-block-index={index}>
             <BlockComponent

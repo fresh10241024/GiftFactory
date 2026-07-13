@@ -12,7 +12,6 @@ from app.config import settings
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT_DIR / "fronted.hy" / "blocks" / "registry.json"
-APPROVED_BLOCK_ORDER = ["opening-title", "photo-exploration-ui", "closing-memory-fall"]
 CANONICAL_BLOCK_IDS = {
     "opening-title": "opening-1",
     "photo-exploration-ui": "photo-stage-1",
@@ -50,7 +49,7 @@ def _normalize_manifest_assets(manifest: dict) -> dict:
         if not isinstance(data, dict):
             continue
 
-        block_name = block.get("block")
+        block_name = block.get("block") or block.get("type")
         if block_name == "opening-title":
             data["image"] = _normalize_asset_path(data.get("image"))
         elif block_name == "photo-exploration-ui":
@@ -107,7 +106,11 @@ def load_block_schema(block_id: str) -> dict:
 
 def build_manifest_prompt_payload(state: dict | None = None, plan: dict | None = None) -> dict[str, str]:
     approved_registry = load_registry()
-    block_schemas = {block_id: load_block_schema(block_id) for block_id in APPROVED_BLOCK_ORDER}
+    block_schemas = {
+        block["id"]: load_block_schema(block["id"])
+        for block in get_approved_registry_blocks()
+        if isinstance(block.get("id"), str)
+    }
     asset_pool = [_frontend_asset_url(name) for name in DEFAULT_ASSET_NAMES]
     return {
         "state": json.dumps(state or {}, ensure_ascii=False, indent=2),
@@ -251,21 +254,30 @@ def validate_gift_manifest(value: Any) -> dict:
     if meta.get("createdBy") is not None and meta.get("createdBy") not in {"ai", "user", "mixed"}:
         raise ManifestValidationError('meta.createdBy must be "ai", "user", or "mixed"')
 
+    design = value.get("design", {})
+    if design is not None and not isinstance(design, dict):
+        raise ManifestValidationError("design must be an object")
+    if isinstance(design, dict):
+        allowed_design_keys = {"background", "foreground", "accent", "font", "motion", "radius"}
+        if set(design.keys()) - allowed_design_keys:
+            extras = ", ".join(sorted(set(design.keys()) - allowed_design_keys))
+            raise ManifestValidationError(f"design contains unsupported fields: {extras}")
+        for key in ("background", "foreground", "accent", "font", "motion", "radius"):
+            if design.get(key) is not None:
+                _ensure_string(design[key], f"design.{key}")
+
     blocks = value.get("blocks")
     if not isinstance(blocks, list) or not blocks:
         raise ManifestValidationError("Manifest blocks must be a non-empty array")
-    if len(blocks) != 3:
-        raise ManifestValidationError("Manifest blocks must contain exactly 3 approved blocks")
-
-    expected_order = APPROVED_BLOCK_ORDER
-    actual_order = []
+    if len(blocks) > 20:
+        raise ManifestValidationError("Manifest blocks must contain at most 20 blocks")
     seen_ids: set[str] = set()
 
     for index, block in enumerate(blocks):
         if not isinstance(block, dict):
             raise ManifestValidationError(f"Block {index} must be an object")
 
-        allowed_block_keys = {"id", "block", "data"}
+        allowed_block_keys = {"id", "block", "type", "data", "layout", "variant"}
         if set(block.keys()) - allowed_block_keys:
             extras = ", ".join(sorted(set(block.keys()) - allowed_block_keys))
             raise ManifestValidationError(f"Block {index} contains unsupported fields: {extras}")
@@ -275,14 +287,19 @@ def validate_gift_manifest(value: Any) -> dict:
             raise ManifestValidationError(f"Duplicate block id: {block_id}")
         seen_ids.add(block_id)
 
-        block_name = _ensure_string(block.get("block"), f"blocks[{index}].block")
-        actual_order.append(block_name)
+        block_name = block.get("block") or block.get("type")
+        block_name = _ensure_string(block_name, f"blocks[{index}].block")
         if block_name not in get_registry_block_ids():
             raise ManifestValidationError(f"Block {block_name} is not approved")
 
         expected_block_id = CANONICAL_BLOCK_IDS.get(block_name)
-        if expected_block_id and block_id != expected_block_id:
+        if expected_block_id and block_id in CANONICAL_BLOCK_IDS.values() and block_id != expected_block_id:
             raise ManifestValidationError(f"Block {block_name} must use canonical id {expected_block_id}")
+
+        if block.get("layout") is not None:
+            _ensure_string(block["layout"], f"blocks[{index}].layout")
+        if block.get("variant") is not None:
+            _ensure_string(block["variant"], f"blocks[{index}].variant")
 
         data = block.get("data")
         if not isinstance(data, dict):
@@ -297,11 +314,6 @@ def validate_gift_manifest(value: Any) -> dict:
         slots = schema["slots"]
         for slot_name, slot_spec in slots.items():
             _validate_value_against_spec(data.get(slot_name), slot_spec, f"blocks[{index}].data.{slot_name}")
-
-    if actual_order != expected_order:
-        raise ManifestValidationError(
-            "Manifest blocks must be in approved order: opening-title, photo-exploration-ui, closing-memory-fall"
-        )
 
     return _normalize_manifest_assets(value)
 
