@@ -33,7 +33,9 @@ export class ChatInteraction {
 
     async initSession() {
         // URL param takes priority (from dashboard "Continue" link)
-        const urlSession = new URLSearchParams(window.location.search).get('session');
+        const params = new URLSearchParams(window.location.search);
+        const urlSession = params.get('session');
+        const forceNew = params.get('new') === '1';
         if (urlSession) {
             this.sessionId = urlSession;
             localStorage.setItem('chat_session_id', urlSession);
@@ -44,7 +46,7 @@ export class ChatInteraction {
 
         if (token) {
             // Logged-in: reuse existing session or create/manage
-            const existing = localStorage.getItem('chat_session_id');
+            const existing = forceNew ? null : localStorage.getItem('chat_session_id');
             if (existing) {
                 this.sessionId = existing;
                 try {
@@ -70,6 +72,9 @@ export class ChatInteraction {
                     this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
                 }
                 localStorage.setItem('chat_session_id', this.sessionId);
+                if (forceNew) {
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
                 this.renderPanel();
                 return;
             } catch (err) {
@@ -82,6 +87,9 @@ export class ChatInteraction {
             const res = await createSession();
             this.sessionId = res.session_id;
             localStorage.setItem('chat_session_id', this.sessionId);
+            if (forceNew) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
         } catch (err) {
             console.error("Anonymous session creation failed:", err);
             this.questionEl.textContent = 'Failed to start session, please refresh and try again.';
