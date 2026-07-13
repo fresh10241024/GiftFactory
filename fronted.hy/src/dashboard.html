@@ -79,7 +79,7 @@
         <h1 class="page-title">My Gifts</h1>
         <br>
 
-        <a href="./chat.html" class="new-btn" id="new-gift-btn" onclick="newGift()">+ Create New Gift</a>
+        <a href="./chat.html?new=1" class="new-btn" id="new-gift-btn">+ Create New Gift</a>
 
         <div id="not-logged-in">
             <p>Log in to view your gift records</p>
@@ -98,11 +98,6 @@
         const userId = localStorage.getItem('userId');
         const email = localStorage.getItem('userEmail') || '';
         if (email) document.getElementById('user-email').textContent = email;
-
-        function newGift(e) {
-            localStorage.removeItem('chat_session_id');
-        }
-        document.getElementById('new-gift-btn').addEventListener('click', newGift);
 
         if (!token || !userId) {
             document.getElementById('loading').style.display = 'none';
@@ -131,6 +126,9 @@
             btn.textContent = 'Deleting...';
             try {
                 await deleteSession(id);
+                if (localStorage.getItem('chat_session_id') === id) {
+                    localStorage.removeItem('chat_session_id');
+                }
                 btn.closest('.session-card').remove();
                 if (!document.querySelector('.session-card')) {
                     document.getElementById('empty').style.display = 'block';

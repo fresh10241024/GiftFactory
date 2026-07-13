@@ -1,4 +1,4 @@
-import { sendChatMessage, uploadImage, createSession, getMySessions } from './api.js';
+import { sendChatMessage, uploadImage, createSession, getMySessions, deleteSession } from './api.js';
 import { ScreenshotFeature } from './screenshot.js';
 
 export class ChatInteraction {
@@ -33,7 +33,9 @@ export class ChatInteraction {
 
     async initSession() {
         // URL param takes priority (from dashboard "Continue" link)
-        const urlSession = new URLSearchParams(window.location.search).get('session');
+        const params = new URLSearchParams(window.location.search);
+        const urlSession = params.get('session');
+        const forceNew = params.get('new') === '1';
         if (urlSession) {
             this.sessionId = urlSession;
             localStorage.setItem('chat_session_id', urlSession);
@@ -44,7 +46,7 @@ export class ChatInteraction {
 
         if (token) {
             // Logged-in: reuse existing session or create/manage
-            const existing = localStorage.getItem('chat_session_id');
+            const existing = forceNew ? null : localStorage.getItem('chat_session_id');
             if (existing) {
                 this.sessionId = existing;
                 try {
@@ -54,6 +56,13 @@ export class ChatInteraction {
                     if (thisSession && thisSession.status === 'done') {
                         window.location.href = './gift.html';
                         return;
+                    }
+                    if (!thisSession) {
+                        localStorage.removeItem('chat_session_id');
+                        const res = await createSession();
+                        this.sessionId = res.session_id;
+                        this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
+                        localStorage.setItem('chat_session_id', this.sessionId);
                     }
                     this.renderPanel();
                 } catch (_) {}
@@ -70,6 +79,9 @@ export class ChatInteraction {
                     this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
                 }
                 localStorage.setItem('chat_session_id', this.sessionId);
+                if (forceNew) {
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
                 this.renderPanel();
                 return;
             } catch (err) {
@@ -82,6 +94,9 @@ export class ChatInteraction {
             const res = await createSession();
             this.sessionId = res.session_id;
             localStorage.setItem('chat_session_id', this.sessionId);
+            if (forceNew) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
         } catch (err) {
             console.error("Anonymous session creation failed:", err);
             this.questionEl.textContent = 'Failed to start session, please refresh and try again.';
@@ -98,10 +113,6 @@ export class ChatInteraction {
             document.getElementById('session-panel').style.display = 'none';
         });
         document.getElementById('panel-new-btn')?.addEventListener('click', async () => {
-            if (this.allSessions.length >= 5) {
-                alert('Reached the limit of 5 gifts, please delete one first.');
-                return;
-            }
             try {
                 const res = await createSession();
                 this.sessionId = res.session_id;
@@ -123,20 +134,46 @@ export class ChatInteraction {
         this.allSessions.forEach(s => {
             const btn = document.createElement('button');
             const isActive = s.id === this.sessionId;
-            btn.style.cssText = `width:100%;padding:12px;text-align:left;background:${isActive ? 'rgba(255,255,255,0.12)' : 'transparent'};border:1px solid ${isActive ? 'rgba(255,255,255,0.2)' : 'transparent'};color:#fff;border-radius:8px;cursor:pointer;font-size:0.85rem`;
+            btn.style.cssText = `flex:1;padding:12px;text-align:left;background:${isActive ? 'rgba(255,255,255,0.12)' : 'transparent'};border:1px solid ${isActive ? 'rgba(255,255,255,0.2)' : 'transparent'};color:#fff;border-radius:8px 0 0 8px;cursor:pointer;font-size:0.85rem`;
             btn.innerHTML = `<div style="font-weight:500">${s.recipient ? 'To ' + s.recipient : 'New Gift'}</div><div style="opacity:0.4;font-size:0.75rem;margin-top:2px">${s.status === 'done' ? 'Completed' : 'In Progress'}</div>`;
             btn.addEventListener('click', () => {
-                this.sessionId = s.id;
-                localStorage.setItem('chat_session_id', s.id);
-                this.questionEl.textContent = '...';
-                document.getElementById('session-panel').style.display = 'none';
-                this.renderPanel();
+                window.location.href = `./chat.html?session=${encodeURIComponent(s.id)}`;
             });
-            list.appendChild(btn);
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.style.cssText = 'padding:0 8px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-left:0;color:#fff;border-radius:0 8px 8px 0;cursor:pointer;font-size:0.7rem;opacity:0.6';
+            deleteBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.removeSession(s.id);
+            });
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;width:100%;';
+            row.append(btn, deleteBtn);
+            list.appendChild(row);
         });
-        // Hide new button if full
         const newBtn = document.getElementById('panel-new-btn');
-        if (newBtn) newBtn.style.display = this.allSessions.length >= 5 ? 'none' : 'block';
+        if (newBtn) newBtn.style.display = 'block';
+    }
+
+    async removeSession(sessionId) {
+        if (!confirm('Delete this gift and its conversation?')) return;
+        try {
+            await deleteSession(sessionId);
+            this.allSessions = this.allSessions.filter(s => s.id !== sessionId);
+            if (this.sessionId === sessionId) {
+                const res = await createSession();
+                this.sessionId = res.session_id;
+                localStorage.setItem('chat_session_id', this.sessionId);
+                this.allSessions.unshift({ id: this.sessionId, status: 'chatting', recipient: '', occasion: '' });
+                this.ready = false;
+                this.finishBtn.disabled = true;
+                this.finishBtn.style.opacity = '0.35';
+                this.questionEl.textContent = 'Who do you want to customize this gift for?';
+            }
+            this.renderPanel();
+        } catch (error) {
+            alert(`Delete failed: ${error.message}`);
+        }
     }
 
     initEvents() {
@@ -310,6 +347,7 @@ export class ChatInteraction {
             this.finishBtn.disabled = !this.ready;
             this.finishBtn.style.opacity = this.ready ? '1' : '0.35';
             this.finishBtn.title = this.ready ? 'Generate analysis' : 'Keep answering questions first';
+            await this.refreshSessions();
             
             // Example of changing question based on AI reply
             if (res && res.reply) {
@@ -335,6 +373,17 @@ export class ChatInteraction {
             console.error("API Error", error);
             this.input.disabled = false;
             this.answerBtn.style.opacity = '1';
+        }
+    }
+
+    async refreshSessions() {
+        if (!localStorage.getItem('token')) return;
+        try {
+            const data = await getMySessions();
+            this.allSessions = data.sessions || [];
+            this.renderPanel();
+        } catch (error) {
+            console.warn('Session list refresh failed:', error.message);
         }
     }
 }

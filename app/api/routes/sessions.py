@@ -56,9 +56,23 @@ def extract_state(text: str) -> dict | None:
     return None
 
 
-def clean_reply(text: str) -> str:
+def clean_reply(text: str, fallback: str = "") -> str:
     text = re.sub(r"<state>.*?</state>", "", text, flags=re.DOTALL)
-    return text.strip()
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return fallback
+
+    # The UI is a question-at-a-time interview. Keep model drift or legacy
+    # multi-paragraph replies from leaking analysis/page-generation copy into it.
+    question_lines = []
+    for line in lines:
+        line = re.sub(r"^(question|reply)\s*:\s*", "", line, flags=re.IGNORECASE)
+        # Keep the last actual question when the model prepends an apology,
+        # summary, or other conversational filler on the same line.
+        question_lines.extend(re.findall(r"[^。！？?!]*[？?]", line))
+    if question_lines:
+        return question_lines[-1].strip()
+    return fallback or lines[0]
 
 
 def _get_user_id(authorization: Optional[str]) -> Optional[str]:
@@ -77,9 +91,6 @@ def _check_session_access(session: dict, caller_user_id: Optional[str]):
     owner = session.get("user_id")
     if owner and owner != caller_user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
-
-
-SESSION_LIMIT = 5
 
 
 def _load_session_cache(session_id: str, session: dict):
@@ -125,13 +136,6 @@ def _require_uuid(value: str):
 @router.post("")
 async def create_session(authorization: Optional[str] = Header(None)):
     user_id = _get_user_id(authorization)
-    if user_id:
-        count = supabase.table("sessions").select("id", count="exact").eq("user_id", user_id).execute()
-        if (count.count or 0) >= SESSION_LIMIT:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Maximum {SESSION_LIMIT} gifts can be saved. Please delete some in 'My Gifts' before creating new ones."
-            )
     session_id = str(uuid.uuid4())
     supabase.table("sessions").insert({"id": session_id, "status": "chatting", "user_id": user_id}).execute()
     ensure_session_cache(session_id, state={}, status="chatting", messages=[])
@@ -163,7 +167,6 @@ async def my_sessions(authorization: Optional[str] = Header(None)):
         .select("id, status, style_summary, created_at, updated_at")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
-        .limit(20)
         .execute()
     )
     sessions = []
@@ -219,6 +222,7 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     system = CONVERSATION_SYSTEM
     if not force_ready:
         slot = next_slot(current_state)
+        fallback_question = slot.examples[0] if slot else "What else about this person feels important to remember?"
         if slot:
             system = CONVERSATION_SYSTEM.replace("{NEXT_FOCUS}", build_focus_injection(slot))
         else:
@@ -251,12 +255,11 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     # Merge extracted state — never lose existing data
     new_state = extract_state(raw_reply)
     merged_state = {**current_state, **(new_state or {})}
-    reply = clean_reply(raw_reply)
+    reply = clean_reply(raw_reply, fallback_question if not force_ready else "Got everything I need.")
 
     if force_ready:
         merged_state["ready"] = True
-        if not reply:
-            reply = "Got everything I need."
+        reply = "Got everything I need."
     else:
         # Ignore an early ready=true emitted by the model.
         merged_state["ready"] = False
