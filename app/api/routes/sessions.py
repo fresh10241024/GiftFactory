@@ -211,6 +211,8 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
 
     current_state = get_session_state(session_id, session.get("style_summary") or {})
     turn_count = current_state.get("_turn_count", 0) + 1
+    # Keep the collection window predictable: readiness is determined only by
+    # the turn limit, not by an early model guess.
     force_ready = turn_count >= MAX_TURNS
 
     # Build system prompt: inject next-slot focus so Claude knows what to collect
@@ -220,7 +222,10 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
         if slot:
             system = CONVERSATION_SYSTEM.replace("{NEXT_FOCUS}", build_focus_injection(slot))
         else:
-            force_ready = True
+            system = CONVERSATION_SYSTEM.replace(
+                "{NEXT_FOCUS}",
+                "【NEXT FOCUS】\nKeep the conversation natural and ask one gentle follow-up question. Do not mark ready yet.",
+            )
     if force_ready:
         system = CONVERSATION_SYSTEM.replace(
             "{NEXT_FOCUS}",
@@ -252,8 +257,11 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
         merged_state["ready"] = True
         if not reply:
             reply = "Got everything I need."
+    else:
+        # Ignore an early ready=true emitted by the model.
+        merged_state["ready"] = False
 
-    ready = merged_state.get("ready", False)
+    ready = force_ready
     merged_state["_turn_count"] = turn_count
 
     set_session_state(session_id, merged_state)
