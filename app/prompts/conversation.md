@@ -73,6 +73,7 @@ Fill only the fields the user actually mentioned. Leave everything else as null 
   "user_own_words": null,
   "observation": null,
   "photo_description": null,
+  "photo_url": null,
   "core_emotion": null,
   "ready": false,
   "mood": {"bg": "#0a0a0f", "accent": "#a0a0c0", "particle": "float"}

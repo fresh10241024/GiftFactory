@@ -4,6 +4,7 @@ import uuid
 import time
 import base64
 import traceback
+import mimetypes
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Header
 from typing import Optional
 from pydantic import BaseModel
@@ -300,6 +301,26 @@ async def upload_image(session_id: str, file: UploadFile = File(...), authorizat
     image_data = await file.read()
     b64 = base64.standard_b64encode(image_data).decode("utf-8")
     media_type = file.content_type or "image/jpeg"
+    extension = mimetypes.guess_extension(media_type) or ".jpg"
+    storage_path = f"sessions/{session_id}/{uuid.uuid4().hex}{extension}"
+
+    try:
+        storage = supabase.storage.from_(settings.supabase_storage_bucket)
+        storage.upload(
+            storage_path,
+            image_data,
+            {
+                "content-type": media_type,
+                "cache-control": "31536000",
+                "upsert": "false",
+            },
+        )
+        photo_url = storage.get_public_url(storage_path)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not store uploaded photo. Check the public Supabase Storage bucket '{settings.supabase_storage_bucket}'.",
+        ) from exc
 
     collected = {k: v for k, v in state.items() if v and not k.startswith("_")}
     context_hint = f"Gift context so far: {json.dumps(collected, ensure_ascii=False)}" if collected else ""
@@ -356,10 +377,10 @@ Good reply examples:
 
     description = photo_data.get("description") or reply
 
-    updated_state = {**state, "photo_description": description}
+    updated_state = {**state, "photo_description": description, "photo_url": photo_url}
     set_session_state(session_id, updated_state)
     _persist_session_context(session_id, updated_state)
-    return {"success": True, "description": description, "reply": reply}
+    return {"success": True, "description": description, "photo_url": photo_url, "reply": reply}
 
 
 @router.post("/{session_id}/plan")

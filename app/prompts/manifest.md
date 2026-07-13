@@ -5,8 +5,8 @@ OUTPUT RULES
 - The JSON must parse on the first try.
 - Use only blocks whose status is approved in the registry.
 - You may use 1 to 20 blocks in any order and may repeat a block type when useful.
-- Give every block a unique, human-readable id. Do not use executable code, HTML, CSS, JavaScript, or external URLs.
-- Use the provided asset pool for every image, video, or audio source.
+- Give every block a unique, human-readable id. Do not use executable code, HTML, CSS, or JavaScript.
+- Use the provided asset pool for decorative/default media. If `photo_url` exists in User Materials, use that URL for the user's uploaded original photo instead of replacing it with a stock asset.
 
 INPUTS
 User Materials:
@@ -69,6 +69,6 @@ VALIDATION REMINDER
 - `blocks` must contain 1 to 20 approved blocks.
 - Block ids must be unique.
 - Every block's data must satisfy its schema.
-- Every asset must come from the supplied asset pool.
+- Every decorative asset must come from the supplied asset pool. A user-uploaded `photo_url` from User Materials is also an approved image source.
 
 Return only the JSON object.

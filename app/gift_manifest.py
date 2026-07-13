@@ -7,6 +7,7 @@ from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from app.config import settings
 
@@ -30,8 +31,13 @@ def _frontend_asset_url(filename: str) -> str:
 
 
 def _normalize_asset_path(value: Any) -> Any:
-    if isinstance(value, str) and value.startswith(("./", "/")):
+    if not isinstance(value, str):
+        return value
+    if value.startswith(("./", "/")):
         return _frontend_asset_url(value)
+    parsed = urlsplit(value)
+    if parsed.hostname in {"localhost", "127.0.0.1", "::1"} and parsed.path:
+        return _frontend_asset_url(parsed.path)
     return value
 
 
