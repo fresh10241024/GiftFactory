@@ -445,7 +445,19 @@ def _run_plan(session_id: str, state: dict):
         s2 = next((s for s in scenes if s.get("act") == 2), scenes[1] if len(scenes) > 1 else {})
         s3 = next((s for s in scenes if s.get("act") == 3), scenes[2] if len(scenes) > 2 else {})
         style_name = plan.get("style_archetype", "").split(".")[-1].strip() if plan.get("style_archetype") else ""
+        sections = [
+            {
+                "act": scene.get("act", index + 1),
+                "role": scene.get("role") or f"Scene {index + 1}",
+                "title": scene.get("headline") or scene.get("role") or f"Scene {index + 1}",
+                "text": scene.get("body") or scene.get("sub") or "",
+                "visual": scene.get("visual") or "",
+            }
+            for index, scene in enumerate(scenes)
+            if isinstance(scene, dict) and (scene.get("headline") or scene.get("body") or scene.get("sub"))
+        ]
         frontend_plan = {
+            "sections": sections,
             "title1": s2.get("headline") or f"About {recipient}",
             "text1": s2.get("body") or "",
             "title2": s3.get("headline") or "That Moment",

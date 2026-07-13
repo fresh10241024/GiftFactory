@@ -65,6 +65,9 @@ export class AnalysisController {
 
     parsePlan(plan) {
         if (!plan) return [];
+        if (Array.isArray(plan.sections)) {
+            return plan.sections.filter((section) => section?.title && section?.text);
+        }
         return Object.keys(plan).filter(k => k.startsWith('title')).sort().reduce((arr, tKey) => {
             const num = tKey.replace('title', '');
             if (plan[`text${num}`]) arr.push({ title: plan[tKey], text: plan[`text${num}`] });
@@ -105,12 +108,17 @@ export class AnalysisController {
             const sectionEl = document.createElement('div');
             sectionEl.className = 'analysis-section';
             
+            const metaEl = document.createElement('div');
+            metaEl.className = 'analysis-section-meta';
+            metaEl.textContent = `${String(section.act ?? index + 1).padStart(2, '0')} · ${section.role || 'Story'}`;
+
             const titleEl = document.createElement('h3');
             titleEl.textContent = section.title;
             
             const textEl = document.createElement('p');
             textEl.textContent = section.text;
 
+            sectionEl.appendChild(metaEl);
             sectionEl.appendChild(titleEl);
             sectionEl.appendChild(textEl);
             this.contentContainer.appendChild(sectionEl);
@@ -126,7 +134,7 @@ export class AnalysisController {
                         this.actionFooter.style.pointerEvents = 'auto';
                     }, 800);
                 }
-            }, index * 1200 + 100); // 1.2s delay between each paragraph
+            }, index * 180 + 80);
         });
     }
 }
