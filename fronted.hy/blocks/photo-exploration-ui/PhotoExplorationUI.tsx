@@ -5,12 +5,16 @@ import { AnimatePresence, animate, motion } from "framer-motion";
 import html2canvas from "html2canvas";
 
 export type PhotoExplorationItem = {
+  id?: string;
   src: string;
   alt?: string;
   title: string;
   eyebrow?: string;
   summary: string;
   detail: string;
+  originalText?: string;
+  polishedText?: string;
+  textSource?: "user" | "ai" | "user_edit" | string;
   primaryColor: string;
 };
 

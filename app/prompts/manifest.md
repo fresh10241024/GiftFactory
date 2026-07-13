@@ -64,6 +64,14 @@ DESIGN RULES
 - Prefer Chinese when the story is Chinese. Preserve the user's quoted words exactly when they are emotionally important.
 - Omit optional fields instead of inventing unsupported fields.
 
+PHOTO STORY RULES
+- When `photo_url` exists, include it in `photo-exploration-ui.photos[]` when that block is used; do not replace it with a stock image.
+- Every photo item should have a stable `id` such as `photo-01`.
+- `originalText` is the user's source wording and must remain verbatim.
+- `polishedText` is an optional AI refinement grounded in `originalText`.
+- `detail` is the current text shown in the editable detail card. Initially use `polishedText` or `originalText`.
+- Set `textSource` to `user`, `ai`, or `user_edit`.
+
 VALIDATION REMINDER
 - `version` must be exactly "1.0".
 - `blocks` must contain 1 to 20 approved blocks.

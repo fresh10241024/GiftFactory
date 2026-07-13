@@ -15,6 +15,7 @@ from app.gift_manifest import (
     build_manifest_html,
     build_manifest_prompt_payload,
     extract_json_document,
+    ensure_user_photo_block,
     validate_gift_manifest,
 )
 from app.session_cache import (
@@ -376,8 +377,21 @@ Good reply examples:
         reply = "Got it — this will help."
 
     description = photo_data.get("description") or reply
+    photo_original_text = next(
+        (
+            message.get("content")
+            for message in reversed(get_session_messages(session_id))
+            if message.get("role") == "user" and message.get("content")
+        ),
+        state.get("user_own_words"),
+    )
 
-    updated_state = {**state, "photo_description": description, "photo_url": photo_url}
+    updated_state = {
+        **state,
+        "photo_description": description,
+        "photo_url": photo_url,
+        "photo_original_text": photo_original_text,
+    }
     set_session_state(session_id, updated_state)
     _persist_session_context(session_id, updated_state)
     return {"success": True, "description": description, "photo_url": photo_url, "reply": reply}
@@ -587,6 +601,13 @@ def _run_generation(session_id: str, state: dict, plan: dict):
             raw = _call_text_model(attempt_prompt)
             print(f"[generation] session={session_id} attempt={attempt} deepseek_ok elapsed={time.time()-t0:.1f}s len={len(raw)}")
             manifest = validate_gift_manifest(extract_json_document(raw))
+            manifest = ensure_user_photo_block(
+                manifest,
+                state.get("photo_url"),
+                state.get("photo_original_text"),
+                state.get("photo_description"),
+            )
+            manifest = validate_gift_manifest(manifest)
             slug = str(uuid.uuid4())[:8]
             html = build_manifest_html(manifest, slug=slug)
             supabase.table("gifts").insert({

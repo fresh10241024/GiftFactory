@@ -38,6 +38,10 @@ def _normalize_asset_path(value: Any) -> Any:
     parsed = urlsplit(value)
     if parsed.hostname in {"localhost", "127.0.0.1", "::1"} and parsed.path:
         return _frontend_asset_url(parsed.path)
+    # Repair manifests generated while FRONTEND_URL contained a duplicated
+    # scheme, e.g. https://gift-factory-1j7w-git-https:/2.webp.
+    if parsed.path and parsed.hostname and parsed.hostname.endswith("-https"):
+        return _frontend_asset_url(parsed.path)
     return value
 
 
@@ -324,6 +328,78 @@ def validate_gift_manifest(value: Any) -> dict:
             _validate_value_against_spec(data.get(slot_name), slot_spec, f"blocks[{index}].data.{slot_name}")
 
     return _normalize_manifest_assets(value)
+
+
+def ensure_user_photo_block(
+    manifest: dict,
+    photo_url: str | None,
+    original_text: str | None = None,
+    polished_text: str | None = None,
+) -> dict:
+    """Guarantee that an uploaded user photo has a visible, editable story card."""
+    if not isinstance(photo_url, str) or not photo_url.strip():
+        return manifest
+
+    normalized = deepcopy(manifest)
+    blocks = normalized.setdefault("blocks", [])
+    for block in blocks:
+        if not isinstance(block, dict) or (block.get("block") or block.get("type")) != "photo-exploration-ui":
+            continue
+        photos = block.setdefault("data", {}).setdefault("photos", [])
+        if any(isinstance(photo, dict) and photo.get("src") == photo_url for photo in photos):
+            return normalized
+        used_photo_ids = {photo.get("id") for photo in photos if isinstance(photo, dict)}
+        photo_id = "photo-01"
+        index = 2
+        while photo_id in used_photo_ids:
+            photo_id = f"photo-{index:02d}"
+            index += 1
+        display_text = polished_text or original_text or "A photo you chose to keep."
+        photos.insert(
+            0,
+            {
+                "id": photo_id,
+                "src": photo_url,
+                "alt": "The original photo shared for this gift",
+                "title": "The moment you chose",
+                "eyebrow": "YOUR PHOTO",
+                "summary": (original_text or display_text)[:120],
+                "detail": display_text,
+                "originalText": original_text or "",
+                "polishedText": polished_text or display_text,
+                "textSource": "user" if not polished_text else "ai",
+                "primaryColor": "#86dec7",
+            },
+        )
+        return normalized
+
+    if photo_url in json.dumps(normalized, ensure_ascii=False):
+        return normalized
+
+    used_ids = {block.get("id") for block in blocks if isinstance(block, dict)}
+    block_id = "user-photo"
+    suffix = 2
+    while block_id in used_ids:
+        block_id = f"user-photo-{suffix}"
+        suffix += 1
+
+    insert_at = 1 if blocks else 0
+    blocks.insert(
+        insert_at,
+        {
+            "id": block_id,
+            "block": "media-stage",
+            "layout": "full-width",
+            "variant": "original-memory",
+            "data": {
+                "src": photo_url,
+                "kind": "image",
+                "alt": "The original photo shared for this gift",
+                "caption": "The photo you chose to keep.",
+            },
+        },
+    )
+    return normalized
 
 
 def extract_json_document(text: str) -> Any:

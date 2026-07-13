@@ -24,7 +24,7 @@ function PhotoExplorationBlock({ data, onDataChange }: BlockRendererProps) {
       photos={photos}
       onTextChange={(index, detail) => {
         const nextPhotos = photos.map((photo, photoIndex) =>
-          photoIndex === index ? { ...photo, detail } : photo,
+          photoIndex === index ? { ...photo, detail, textSource: "user_edit" } : photo,
         );
         onDataChange?.({
           ...data,
