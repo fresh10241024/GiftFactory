@@ -56,9 +56,19 @@ def extract_state(text: str) -> dict | None:
     return None
 
 
-def clean_reply(text: str) -> str:
+def clean_reply(text: str, fallback: str = "") -> str:
     text = re.sub(r"<state>.*?</state>", "", text, flags=re.DOTALL)
-    return text.strip()
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return fallback
+
+    # The UI is a question-at-a-time interview. Keep model drift or legacy
+    # multi-paragraph replies from leaking analysis/page-generation copy into it.
+    for line in lines:
+        line = re.sub(r"^(question|reply)\s*:\s*", "", line, flags=re.IGNORECASE)
+        if "?" in line or "？" in line:
+            return line
+    return fallback or lines[0]
 
 
 def _get_user_id(authorization: Optional[str]) -> Optional[str]:
@@ -219,6 +229,7 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     system = CONVERSATION_SYSTEM
     if not force_ready:
         slot = next_slot(current_state)
+        fallback_question = slot.examples[0] if slot else "What else about this person feels important to remember?"
         if slot:
             system = CONVERSATION_SYSTEM.replace("{NEXT_FOCUS}", build_focus_injection(slot))
         else:
@@ -251,7 +262,7 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
     # Merge extracted state — never lose existing data
     new_state = extract_state(raw_reply)
     merged_state = {**current_state, **(new_state or {})}
-    reply = clean_reply(raw_reply)
+    reply = clean_reply(raw_reply, fallback_question if not force_ready else "Got everything I need.")
 
     if force_ready:
         merged_state["ready"] = True
