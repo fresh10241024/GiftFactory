@@ -38,6 +38,10 @@ def _normalize_asset_path(value: Any) -> Any:
     parsed = urlsplit(value)
     if parsed.hostname in {"localhost", "127.0.0.1", "::1"} and parsed.path:
         return _frontend_asset_url(parsed.path)
+    # Repair manifests generated while FRONTEND_URL contained a duplicated
+    # scheme, e.g. https://gift-factory-1j7w-git-https:/2.webp.
+    if parsed.path and parsed.hostname and parsed.hostname.endswith("-https"):
+        return _frontend_asset_url(parsed.path)
     return value
 
 
