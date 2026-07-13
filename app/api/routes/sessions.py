@@ -93,9 +93,6 @@ def _check_session_access(session: dict, caller_user_id: Optional[str]):
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
-SESSION_LIMIT = 5
-
-
 def _load_session_cache(session_id: str, session: dict):
     """Initialize memory from Supabase once; never overwrite newer cached state."""
     cached = get_session_cache(session_id)
@@ -139,13 +136,6 @@ def _require_uuid(value: str):
 @router.post("")
 async def create_session(authorization: Optional[str] = Header(None)):
     user_id = _get_user_id(authorization)
-    if user_id:
-        count = supabase.table("sessions").select("id", count="exact").eq("user_id", user_id).execute()
-        if (count.count or 0) >= SESSION_LIMIT:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Maximum {SESSION_LIMIT} gifts can be saved. Please delete some in 'My Gifts' before creating new ones."
-            )
     session_id = str(uuid.uuid4())
     supabase.table("sessions").insert({"id": session_id, "status": "chatting", "user_id": user_id}).execute()
     ensure_session_cache(session_id, state={}, status="chatting", messages=[])
@@ -177,7 +167,6 @@ async def my_sessions(authorization: Optional[str] = Header(None)):
         .select("id, status, style_summary, created_at, updated_at")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
-        .limit(20)
         .execute()
     )
     sessions = []
