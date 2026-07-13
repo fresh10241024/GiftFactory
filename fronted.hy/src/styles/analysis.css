@@ -1,65 +1,80 @@
-/* Analysis Page Styles */
+:root {
+    --analysis-ink: #f6f1e8;
+    --analysis-muted: rgba(246, 241, 232, 0.56);
+    --analysis-line: rgba(246, 241, 232, 0.13);
+    --analysis-accent: #c7f36b;
+}
+
 .analysis-page {
-    background-color: #f5f5f5; /* Light background behind the card */
-    color: #121212;
-    font-family: var(--font-primary), Arial, sans-serif;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    color: var(--analysis-ink);
+    background:
+        radial-gradient(circle at 12% 12%, rgba(199, 243, 107, 0.11), transparent 30rem),
+        radial-gradient(circle at 88% 78%, rgba(199, 149, 105, 0.12), transparent 34rem),
+        #0b0d0c;
+    font-family: Georgia, "Times New Roman", serif;
 }
 
 .analysis-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    padding: 30px 40px;
-    font-size: 14px;
-    position: relative;
-    z-index: 10;
-}
-
-.header-left, .header-right {
+    align-items: center;
+    width: min(1180px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: 28px 0;
+    color: var(--analysis-muted);
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 12px;
 }
 
 .analysis-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 40px;
-    width: 100%;
+    width: min(1180px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: 8vh 0 12vh;
 }
 
 .analysis-card {
-    background-color: #0a0a0a;
-    color: #ffffff;
-    width: 100%;
-    max-width: 900px;
-    height: 60vh;
-    min-height: 400px;
-    border-radius: 12px;
-    padding: 60px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    overflow-y: auto;
     position: relative;
+    overflow: hidden;
+    border: 1px solid var(--analysis-line);
+    border-radius: 28px;
+    background: rgba(17, 20, 18, 0.82);
+    box-shadow: 0 35px 100px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(18px);
+}
+
+.analysis-card::before {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255,255,255,0.06), transparent 32%, transparent 70%, rgba(199,243,107,0.04));
+    content: "";
+    pointer-events: none;
 }
 
 .analysis-content {
-    font-family: var(--font-primary), Arial, sans-serif;
-    font-size: 24px;
-    line-height: 1.6;
-    letter-spacing: -0.01em;
+    position: relative;
+    display: grid;
+    gap: 0;
+    padding: clamp(28px, 6vw, 88px);
 }
 
 .analysis-section {
-    margin-bottom: 40px;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(80px, 0.25fr) minmax(0, 1fr);
+    column-gap: clamp(20px, 5vw, 76px);
+    padding: clamp(28px, 5vw, 62px) 0;
+    border-top: 1px solid var(--analysis-line);
     opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.8s ease, transform 0.8s ease;
+    transform: translateY(12px);
+    transition: opacity 0.65s ease, transform 0.65s ease;
+}
+
+.analysis-section:first-child {
+    padding-top: 0;
+    border-top: 0;
 }
 
 .analysis-section.visible {
@@ -67,50 +82,108 @@
     transform: translateY(0);
 }
 
+.analysis-section-meta {
+    padding-top: 0.55rem;
+    color: var(--analysis-accent);
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    line-height: 1.5;
+    text-transform: uppercase;
+}
+
 .analysis-section h3 {
-    font-size: 20px;
-    color: #888;
-    margin-bottom: 12px;
-    font-weight: normal;
+    max-width: 850px;
+    margin: 0;
+    color: var(--analysis-ink);
+    font-size: clamp(2rem, 5vw, 5.5rem);
+    font-weight: 400;
+    letter-spacing: -0.055em;
+    line-height: 0.98;
+    overflow-wrap: anywhere;
 }
 
 .analysis-section p {
-    margin: 0;
-    color: #e0e0e0;
+    grid-column: 2;
+    max-width: 720px;
+    margin: 24px 0 0;
+    color: var(--analysis-muted);
+    font-family: Arial, sans-serif;
+    font-size: clamp(1rem, 1.5vw, 1.3rem);
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
 }
 
 .loading-indicator {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 16px;
-    color: #666;
-    animation: pulse 1.5s infinite alternate;
-}
-
-@keyframes pulse {
-    from { opacity: 0.5; }
-    to { opacity: 1; }
+    position: relative;
+    padding: 72px clamp(28px, 6vw, 88px);
+    color: var(--analysis-muted);
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: center;
 }
 
 .action-footer {
-    margin-top: 40px;
+    display: flex;
+    justify-content: center;
+    margin-top: 28px;
     transition: opacity 0.5s ease;
 }
 
 .primary-btn {
-    background-color: #121212;
-    color: #ffffff;
-    border: none;
-    padding: 16px 40px;
-    border-radius: 30px;
-    font-size: 16px;
+    padding: 15px 28px;
+    border: 1px solid rgba(199,243,107,0.42);
+    border-radius: 999px;
+    color: #0b0d0c;
+    background: var(--analysis-accent);
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: transform 0.2s ease, background-color 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .primary-btn:hover {
-    background-color: #333;
-    transform: scale(1.02);
+    box-shadow: 0 10px 30px rgba(199,243,107,0.2);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 640px) {
+    .analysis-header,
+    .analysis-container {
+        width: min(100% - 28px, 1180px);
+    }
+
+    .analysis-header {
+        padding: 20px 0;
+        font-size: 9px;
+    }
+
+    .analysis-container {
+        padding-top: 5vh;
+    }
+
+    .analysis-card {
+        border-radius: 20px;
+    }
+
+    .analysis-content {
+        padding: 30px 22px;
+    }
+
+    .analysis-section {
+        display: block;
+        padding: 32px 0;
+    }
+
+    .analysis-section-meta {
+        margin-bottom: 18px;
+    }
+
+    .analysis-section p {
+        margin-top: 18px;
+    }
 }

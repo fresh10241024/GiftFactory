@@ -211,6 +211,8 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
 
     current_state = get_session_state(session_id, session.get("style_summary") or {})
     turn_count = current_state.get("_turn_count", 0) + 1
+    # Keep the collection window predictable: readiness is determined only by
+    # the turn limit, not by an early model guess.
     force_ready = turn_count >= MAX_TURNS
 
     # Build system prompt: inject next-slot focus so Claude knows what to collect
@@ -220,7 +222,10 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
         if slot:
             system = CONVERSATION_SYSTEM.replace("{NEXT_FOCUS}", build_focus_injection(slot))
         else:
-            force_ready = True
+            system = CONVERSATION_SYSTEM.replace(
+                "{NEXT_FOCUS}",
+                "【NEXT FOCUS】\nKeep the conversation natural and ask one gentle follow-up question. Do not mark ready yet.",
+            )
     if force_ready:
         system = CONVERSATION_SYSTEM.replace(
             "{NEXT_FOCUS}",
@@ -252,8 +257,11 @@ async def chat(session_id: str, body: ChatRequest, authorization: Optional[str] 
         merged_state["ready"] = True
         if not reply:
             reply = "Got everything I need."
+    else:
+        # Ignore an early ready=true emitted by the model.
+        merged_state["ready"] = False
 
-    ready = merged_state.get("ready", False)
+    ready = force_ready
     merged_state["_turn_count"] = turn_count
 
     set_session_state(session_id, merged_state)
@@ -432,12 +440,33 @@ def _run_plan(session_id: str, state: dict):
         raw += ']' * open_brackets + '}' * open_braces
         plan = json.loads(raw)
 
-        scenes = plan.get("scenes", [])
-        recipient = state.get("recipient_name") or (scenes[0].get("sub", "").replace("For ", "") if scenes else "you")
+        scenes = plan.get("sections") or plan.get("scenes", [])
+        recipient = state.get("recipient_name") or (
+            scenes[0].get("sub", "").replace("For ", "") if scenes else "you"
+        )
         s2 = next((s for s in scenes if s.get("act") == 2), scenes[1] if len(scenes) > 1 else {})
         s3 = next((s for s in scenes if s.get("act") == 3), scenes[2] if len(scenes) > 2 else {})
         style_name = plan.get("style_archetype", "").split(".")[-1].strip() if plan.get("style_archetype") else ""
+        sections = [
+            {
+                "act": scene.get("act", index + 1),
+                "role": scene.get("role") or f"Scene {index + 1}",
+                "title": scene.get("title") or scene.get("headline") or scene.get("role") or f"Scene {index + 1}",
+                "text": scene.get("text") or scene.get("body") or scene.get("sub") or "",
+                "visual": scene.get("visual") or "",
+            }
+            for index, scene in enumerate(scenes)
+            if isinstance(scene, dict)
+            and (
+                scene.get("title")
+                or scene.get("text")
+                or scene.get("headline")
+                or scene.get("body")
+                or scene.get("sub")
+            )
+        ]
         frontend_plan = {
+            "sections": sections,
             "title1": s2.get("headline") or f"About {recipient}",
             "text1": s2.get("body") or "",
             "title2": s3.get("headline") or "That Moment",

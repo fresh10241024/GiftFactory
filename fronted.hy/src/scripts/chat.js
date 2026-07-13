@@ -20,6 +20,11 @@ export class ChatInteraction {
         
         this.sessionId = null;
         this.allSessions = [];
+        this.ready = false;
+
+        this.finishBtn.disabled = true;
+        this.finishBtn.style.opacity = '0.35';
+        this.finishBtn.title = 'Keep answering questions first';
 
         this.initSession();
         this.initEvents();
@@ -176,6 +181,10 @@ export class ChatInteraction {
 
         // Navigate to analysis page
         this.finishBtn.addEventListener('click', () => {
+            if (!this.ready) {
+                this.questionEl.textContent = 'Keep answering a few more questions first.';
+                return;
+            }
             window.location.href = './analysis.html';
         });
     }
@@ -297,6 +306,10 @@ export class ChatInteraction {
             this.input.disabled = false;
             this.answerBtn.style.opacity = '1';
             this.deactivateInput();
+            this.ready = res?.ready === true;
+            this.finishBtn.disabled = !this.ready;
+            this.finishBtn.style.opacity = this.ready ? '1' : '0.35';
+            this.finishBtn.title = this.ready ? 'Generate analysis' : 'Keep answering questions first';
             
             // Example of changing question based on AI reply
             if (res && res.reply) {
@@ -312,7 +325,7 @@ export class ChatInteraction {
                 }, 300);
             }
 
-            if (res && res.max_turns) {
+            if (res && res.ready && res.max_turns) {
                 setTimeout(() => {
                     window.location.href = './analysis.html';
                 }, 1200);
